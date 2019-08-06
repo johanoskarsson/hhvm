@@ -63,5 +63,5 @@ test: build-hack copy-hack-files
 	$(MAKE) -f Makefile.dune do-test
 
 do-test:
-	dune runtest
+	dune runtest test/typecheck
 	# python3 ./test/integration/runner.py ./bin/hh_server ./bin/hh_client
