@@ -4,7 +4,7 @@ namespace foo;
 
 // Copied over from xhp_body.php, but now inside of a namespace.
 
-class :xhp implements XHPChild {}
+class :xhp implements \XHPChild {}
 class :foo extends :xhp {}
 class :bar extends :xhp {}
 
