@@ -382,7 +382,7 @@ module WithExpressionAndStatementAndTypeParser
         as  name
     *)
     let (parser, use_kind) = parse_namespace_use_kind_opt parser in
-    let (parser, name) = require_qualified_name parser in
+    let (parser, name) = require_qualified_name_or_xhp_class_name parser in
     let (parser1, as_token) = next_token parser in
     let (parser, as_token, alias) =
       if Token.kind as_token = As then

@@ -380,7 +380,8 @@ module WithParser(Parser : Parser_S) = struct
 
   (* Also returns whether last token was '\' *)
   let rec scan_qualified_name_worker parser name_opt acc is_backslash =
-    let parser1, token = next_token_as_name parser in
+    let (parser1, token) = if is_next_xhp_class_name parser then next_xhp_class_name parser else next_token_as_name parser in
+
     match name_opt, Token.kind token, acc with
     | Some name, TokenKind.Backslash, _ ->
       (* found backslash, create item and recurse *)
@@ -390,6 +391,10 @@ module WithParser(Parser : Parser_S) = struct
       scan_qualified_name_worker parser None (part :: acc) true
     | None, TokenKind.Name, _ ->
       (* found a name, recurse to look for backslash *)
+      let (parser, token) = Make.token parser1 token in
+      scan_qualified_name_worker parser (Some token) acc false
+    | None, TokenKind.XHPClassName, _ ->
+      (* found a xhp class name, recurse to look for backslash *)
       let (parser, token) = Make.token parser1 token in
       scan_qualified_name_worker parser (Some token) acc false
     | Some _name, _, [] ->
@@ -490,6 +495,38 @@ module WithParser(Parser : Parser_S) = struct
     | _ ->
       let parser = with_error parser SyntaxError.error1004 in
       Make.missing parser (pos parser)
+
+  let require_qualified_name_or_xhp_class_name parser =
+    let (parser1, name) = if
+      is_next_xhp_class_name parser
+        then next_xhp_class_name parser
+      else
+        next_token_non_reserved_as_name parser in
+
+    print_endline (TokenKind.to_string (Token.kind name));
+    match Token.kind name with
+    | TokenKind.Name ->
+      let (parser, token) = Make.token parser1 name in
+      scan_remaining_qualified_name parser token
+    | TokenKind.Backslash ->
+      let (parser, missing) = Make.missing parser1 (pos parser1) in
+      let (parser, backslash) = Make.token parser name in
+      scan_qualified_name parser missing backslash
+    | TokenKind.Colon ->
+      print_endline ("GOT A COLON YALL");
+      Hh_logger.log "COLON COLON COLON";
+      let (parser, token) = Make.token parser1 name in
+      scan_remaining_qualified_name parser token
+    | TokenKind.XHPClassName ->
+      print_endline (Token.text name);
+      Hh_logger.log "MOOOOOOOOO";
+      let (parser, token) = Make.token parser1 name in
+
+      scan_remaining_qualified_name parser token
+    | _ ->
+      let parser = with_error parser SyntaxError.error1004 in
+      Make.missing parser (pos parser)
+
 
   let require_class_name parser =
     if is_next_xhp_class_name parser then

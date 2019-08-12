@@ -5,7 +5,7 @@
       "name": "ocaml debug",
       "type": "ocaml-debugger",
       "request": "launch",
-      "program": "${workspaceRoot}/_build/default/src/hh_single_compile.bc",
+      "program": "${workspaceRoot}/_build/default/src/hh_single_type_check.bc",
       "arguments": ["/Users/johan/Dev/xhpnamespace/xhp_usage.php"],
       "console": "internalConsole",
       "noDebug": false,
