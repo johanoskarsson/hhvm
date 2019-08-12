@@ -11,5 +11,5 @@ class :bar {}
 use foo\:bar;
 
 function test(): void {
-  <bar></bar>
+  <bar></bar>;
 }

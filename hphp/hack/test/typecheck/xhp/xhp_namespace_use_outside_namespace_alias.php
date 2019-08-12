@@ -11,6 +11,6 @@ class :bar {}
 use foo as fubar;
 
 function test(): void {
-  <fubar:bar></fubar:bar>
-  <:foo:bar></:foo:bar>
+  <fubar:bar></fubar:bar>;
+  <:foo:bar></:foo:bar>;
 }
