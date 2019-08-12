@@ -512,14 +512,7 @@ module WithParser(Parser : Parser_S) = struct
       let (parser, missing) = Make.missing parser1 (pos parser1) in
       let (parser, backslash) = Make.token parser name in
       scan_qualified_name parser missing backslash
-    | TokenKind.Colon ->
-      print_endline ("GOT A COLON YALL");
-      Hh_logger.log "COLON COLON COLON";
-      let (parser, token) = Make.token parser1 name in
-      scan_remaining_qualified_name parser token
     | TokenKind.XHPClassName ->
-      print_endline (Token.text name);
-      Hh_logger.log "MOOOOOOOOO";
       let (parser, token) = Make.token parser1 name in
 
       scan_remaining_qualified_name parser token
