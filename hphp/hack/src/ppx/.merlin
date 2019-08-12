@@ -1,4 +1,14 @@
-REC
-
-# This pkg directive conflicts with other packages elsewhere, so we keep it local here
-PKG compiler-libs.common
+EXCLUDE_QUERY_DIR
+B /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ocaml-compiler-libs/common
+B /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ocaml-migrate-parsetree
+B /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ocaml/compiler-libs
+B /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ppx_derivers
+B /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/result
+B /Users/johan/Dev/hhvm/hphp/hack/_build/default/src/ppx/.ppx_gen_hhi.objs/byte
+S /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ocaml-compiler-libs/common
+S /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ocaml-migrate-parsetree
+S /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ocaml/compiler-libs
+S /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/ppx_derivers
+S /Users/johan/Dev/hhvm/hphp/hack/_build/opam/hack-switch/lib/result
+S .
+FLG -w @a-4-29-40-41-42-44-45-48-58-59-60-40 -strict-formats -short-paths -keep-locs -w @a-4-6-20-29-35-41-42-44-45-48-50

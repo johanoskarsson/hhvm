@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ocaml debug",
+      "type": "ocaml-debugger",
+      "request": "launch",
+      "program": "${workspaceRoot}/_build/default/src/hh_single_compile.bc",
+      "arguments": ["/Users/johan/Dev/xhpnamespace/xhp_usage.php"],
+      "console": "internalConsole",
+      "noDebug": false,
+      "stopOnEntry": false,
+      "debugServer": 4711,
+      "env": {
+        "OCAMLRUNPARAM": "b"
+      }
+    }
+  ]
+}
