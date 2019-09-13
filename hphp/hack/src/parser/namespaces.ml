@@ -216,6 +216,22 @@ let elaborate_defined_id nsenv kind (p, id) =
   in
   ((p, newid), nsenv, update_nsenv)
 
+let rec xhp_namespace_impl parts =
+  match parts with
+  | [] -> ""
+  | h :: [] -> ":" ^ h
+  | h::t -> h ^ "\\" ^ xhp_namespace_impl t
+
+let xhp_namespace id =
+  (* TODO we seem to always receive the version of the name with a colon prefix here
+   even when that's not the case in the php file
+  *)
+  let drop_colon = String_utils.string_after id 1 in
+  let parts = String.split drop_colon ~on: ':' in
+  if List.length parts > 1 then
+    xhp_namespace_impl parts
+  else id
+
 (* Resolves an identifier in a given namespace environment. For example, if we
  * are in the namespace "N\O", the identifier "P\Q" is resolved to "\N\O\P\Q".
  *
@@ -237,6 +253,7 @@ let elaborate_id_impl nsenv kind id =
     (false, id)
   (* The name is already fully-qualified. *)
   else
+    let id = xhp_namespace id in
     let global_id = Utils.add_ns id in
     if kind = ElaborateConst && SN.PseudoConsts.is_pseudo_const global_id then
       (false, global_id)
