@@ -216,21 +216,32 @@ let elaborate_defined_id nsenv kind (p, id) =
   in
   ((p, newid), nsenv, update_nsenv)
 
-let rec xhp_namespace_impl parts =
+(* TODO: Stolen from the Xhp module. I assume we don't want a dependency between the two? *)
+let is_xhp s = String.length s <> 0 && s.[0] = ':'
+
+let strip_colon s = String_utils.lstrip s ":"
+
+let rec elaborate_xhp_namespace_impl parts =
   match parts with
   | [] -> ""
   | h :: [] -> ":" ^ h
-  | h::t -> h ^ "\\" ^ xhp_namespace_impl t
+  | h::t -> h ^ "\\" ^ elaborate_xhp_namespace_impl t
 
-let xhp_namespace id =
-  (* TODO we seem to always receive the version of the name with a colon prefix here
-   even when that's not the case in the php file
-  *)
-  let drop_colon = String_utils.string_after id 1 in
-  let parts = String.split drop_colon ~on: ':' in
-  if List.length parts > 1 then
-    xhp_namespace_impl parts
-  else id
+let elaborate_xhp_namespace id =
+  if is_xhp id <> true then
+    id
+  else
+    (* all xhp ids here have a leading colon *)
+    let id = strip_colon id in
+    (* as a place holder i'm using _ prefix here to say it's a "qualified xhp name" *)
+    (*  *)
+    let id = if String_utils.string_starts_with id "_" then
+      (* replace _ with a : for the split below *)
+      ":" ^ String_utils.lstrip id "_"
+    else id in
+
+    let parts = String.split id ~on: ':' in
+    if List.length parts > 1 then elaborate_xhp_namespace_impl parts else id
 
 (* Resolves an identifier in a given namespace environment. For example, if we
  * are in the namespace "N\O", the identifier "P\Q" is resolved to "\N\O\P\Q".
@@ -249,11 +260,12 @@ let xhp_namespace id =
  * used to be other schemes here.)
  *)
 let elaborate_id_impl nsenv kind id =
+  let id = elaborate_xhp_namespace id in
+
   if id <> "" && id.[0] = '\\' then
     (false, id)
   (* The name is already fully-qualified. *)
   else
-    let id = xhp_namespace id in
     let global_id = Utils.add_ns id in
     if kind = ElaborateConst && SN.PseudoConsts.is_pseudo_const global_id then
       (false, global_id)
