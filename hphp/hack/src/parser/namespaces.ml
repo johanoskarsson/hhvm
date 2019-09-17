@@ -228,20 +228,18 @@ let rec elaborate_xhp_namespace_impl parts =
   | h::t -> h ^ "\\" ^ elaborate_xhp_namespace_impl t
 
 let elaborate_xhp_namespace id =
-  if is_xhp id <> true then
+  if is_xhp id = false then
     id
   else
     (* all xhp ids here have a leading colon *)
-    let id = strip_colon id in
+    let stripped_id = strip_colon id in
     (* as a place holder i'm using _ prefix here to say it's a "qualified xhp name" *)
-    (*  *)
-    let id = if String_utils.string_starts_with id "_" then
+    if String_utils.string_starts_with stripped_id "_" then
       (* replace _ with a : for the split below *)
-      ":" ^ String_utils.lstrip id "_"
-    else id in
-
-    let parts = String.split id ~on: ':' in
-    if List.length parts > 1 then elaborate_xhp_namespace_impl parts else id
+      let split = ":" ^ String_utils.lstrip stripped_id "_" in
+      let parts = String.split split ~on: ':' in
+      if List.length parts > 1 then elaborate_xhp_namespace_impl parts else id
+    else id
 
 (* Resolves an identifier in a given namespace environment. For example, if we
  * are in the namespace "N\O", the identifier "P\Q" is resolved to "\N\O\P\Q".
