@@ -23,7 +23,7 @@ module MakeType = Typing_make_type
 let ty_size env ty =
   let ty_size_visitor =
     object
-      inherit [int] Type_visitor.type_visitor as super
+      inherit [int] Type_visitor.locl_type_visitor as super
 
       method! on_type acc ty = 1 + super#on_type acc ty
 
@@ -43,7 +43,7 @@ let not_implemented s _ =
   failwith (Printf.sprintf "Function %s not implemented" s)
 
 type expand_typedef =
-  expand_env -> env -> Reason.t -> string -> locl ty list -> env * locl ty
+  expand_env -> env -> Reason.t -> string -> locl_ty list -> env * locl_ty
 
 let (expand_typedef_ref : expand_typedef ref) =
   ref (not_implemented "expand_typedef")
@@ -51,13 +51,13 @@ let (expand_typedef_ref : expand_typedef ref) =
 let expand_typedef x = !expand_typedef_ref x
 
 type sub_type =
-  env -> locl ty -> locl ty -> Errors.typing_error_callback -> env
+  env -> locl_ty -> locl_ty -> Errors.typing_error_callback -> env
 
 let (sub_type_ref : sub_type ref) = ref (not_implemented "sub_type")
 
 let sub_type x = !sub_type_ref x
 
-type is_sub_type_type = env -> locl ty -> locl ty -> bool
+type is_sub_type_type = env -> locl_ty -> locl_ty -> bool
 
 (*let (is_sub_type_ref: is_sub_type_type ref) = ref not_implemented*)
 let (is_sub_type_for_union_ref : is_sub_type_type ref) =
@@ -66,7 +66,7 @@ let (is_sub_type_for_union_ref : is_sub_type_type ref) =
 let is_sub_type_for_union x = !is_sub_type_for_union_ref x
 
 type add_constraint =
-  Pos.Map.key -> env -> Ast_defs.constraint_kind -> locl ty -> locl ty -> env
+  Pos.Map.key -> env -> Ast_defs.constraint_kind -> locl_ty -> locl_ty -> env
 
 let (add_constraint_ref : add_constraint ref) =
   ref (not_implemented "add_constraint")
@@ -77,28 +77,28 @@ type expand_typeconst =
   expand_env ->
   env ->
   ?as_tyvar_with_cnstr:bool ->
-  locl ty ->
+  locl_ty ->
   Aast.sid ->
-  env * locl ty
+  env * locl_ty
 
 let (expand_typeconst_ref : expand_typeconst ref) =
   ref (not_implemented "expand_typeconst")
 
 let expand_typeconst x = !expand_typeconst_ref x
 
-type union = env -> locl ty -> locl ty -> env * locl ty
+type union = env -> locl_ty -> locl_ty -> env * locl_ty
 
 let (union_ref : union ref) = ref (not_implemented "union")
 
 let union x = !union_ref x
 
-type union_list = env -> Reason.t -> locl ty list -> env * locl ty
+type union_list = env -> Reason.t -> locl_ty list -> env * locl_ty
 
 let (union_list_ref : union_list ref) = ref (not_implemented "union_list")
 
 let union_list x = !union_list_ref x
 
-type fold_union = env -> Reason.t -> locl ty list -> env * locl ty
+type fold_union = env -> Reason.t -> locl_ty list -> env * locl_ty
 
 let (fold_union_ref : fold_union ref) = ref (not_implemented "fold_union")
 
@@ -106,9 +106,9 @@ let fold_union x = !fold_union_ref x
 
 type simplify_unions =
   env ->
-  ?on_tyvar:(env -> Reason.t -> Ident.t -> env * locl ty) ->
-  locl ty ->
-  env * locl ty
+  ?on_tyvar:(env -> Reason.t -> Ident.t -> env * locl_ty) ->
+  locl_ty ->
+  env * locl_ty
 
 let (simplify_unions_ref : simplify_unions ref) =
   ref (not_implemented "simplify_unions")
@@ -119,7 +119,7 @@ type approx =
   | ApproxUp
   | ApproxDown
 
-type non = env -> Reason.t -> locl ty -> approx:approx -> env * locl ty
+type non = env -> Reason.t -> locl_ty -> approx:approx -> env * locl_ty
 
 let (non_ref : non ref) = ref (not_implemented "non")
 
@@ -127,16 +127,16 @@ let non x = !non_ref x
 
 type simplify_intersections =
   env ->
-  ?on_tyvar:(env -> Reason.t -> int -> env * locl ty) ->
-  locl ty ->
-  env * locl ty
+  ?on_tyvar:(env -> Reason.t -> int -> env * locl_ty) ->
+  locl_ty ->
+  env * locl_ty
 
 let (simplify_intersections_ref : simplify_intersections ref) =
   ref (not_implemented "simplify_intersections")
 
 let simplify_intersections x = !simplify_intersections_ref x
 
-type localize_with_self = env -> decl ty -> env * locl ty
+type localize_with_self = env -> decl_ty -> env * locl_ty
 
 let (localize_with_self_ref : localize_with_self ref) =
   ref (not_implemented "localize_with_self")
@@ -260,7 +260,7 @@ Similarly to try_over_concrete_supertypes, we stay liberal with errors:
 discard the result of any run which has produced an error.
 If all runs have produced an error, gather all errors and results and add errors. *)
 let run_on_intersection :
-    'env -> f:('env -> locl ty -> 'env * 'a) -> locl ty list -> 'env * 'a list
+    'env -> f:('env -> locl_ty -> 'env * 'a) -> locl_ty list -> 'env * 'a list
     =
  fun env ~f tyl ->
   let (env, resl_errors) =
@@ -371,7 +371,7 @@ let get_class_ids env ty =
 
 let reactivity_to_string env r =
   let cond_reactive prefix t =
-    let str = Typing_print.full env t in
+    let str = Typing_print.full_decl (Env.get_tcopt env) t in
     prefix ^ " (condition type: " ^ str ^ ")"
   in
   let rec aux r =
@@ -387,32 +387,6 @@ let reactivity_to_string env r =
     | RxVar _ -> "maybe reactive"
   in
   aux r
-
-(*****************************************************************************)
-(* Unification error *)
-(*****************************************************************************)
-let uerror env r1 ty1 r2 ty2 on_error =
-  let ty1 =
-    Typing_print.with_blank_tyvars (fun () ->
-        Typing_print.full_strip_ns env (r1, ty1))
-  in
-  let ty2 =
-    Typing_print.with_blank_tyvars (fun () ->
-        Typing_print.full_strip_ns env (r2, ty2))
-  in
-  let (ty1, ty2) =
-    if String.equal ty1 ty2 then
-      ("exactly the type " ^ ty1, "the nonexact type " ^ ty2)
-    else
-      (ty1, ty2)
-  in
-  let left = Reason.to_string ("Expected " ^ ty1) r1 in
-  let right = Reason.to_string ("But got " ^ ty2) r2 in
-  match (r1, r2) with
-  | (Reason.Rcstr_on_generics (p, tparam), _)
-  | (_, Reason.Rcstr_on_generics (p, tparam)) ->
-    Errors.violated_constraint p tparam left right
-  | _ -> on_error left right
 
 let get_printable_shape_field_name = Env.get_shape_field_name
 
@@ -503,26 +477,17 @@ let class_is_final_and_not_contravariant class_ty =
 (*****************************************************************************)
 
 module HasTany : sig
-  val check : locl ty -> bool
+  val check : locl_ty -> bool
 
-  val check_why : locl ty -> Reason.t option
+  val check_why : locl_ty -> Reason.t option
 end = struct
   let merge x y = Option.merge x y (fun x _ -> x)
 
   let visitor =
     object (this)
-      inherit [Reason.t option] Type_visitor.type_visitor
+      inherit [Reason.t option] Type_visitor.locl_type_visitor
 
       method! on_tany _ r = Some r
-
-      method! on_tarray acc r ty1_opt ty2_opt =
-        (* Check for array without its type parameters specified *)
-        match (ty1_opt, ty2_opt) with
-        | (None, None) -> Some r
-        | _ ->
-          merge
-            (Option.fold ~f:this#on_type ~init:acc ty1_opt)
-            (Option.fold ~f:this#on_type ~init:acc ty2_opt)
 
       method! on_tarraykind acc r akind =
         match akind with
@@ -571,6 +536,8 @@ let fun_mutable user_attributes =
 
 let tany = Env.tany
 
+let decl_tany = Env.decl_tany
+
 let terr env =
   let dynamic_view_enabled =
     TypecheckerOptions.dynamic_view (Typing_env.get_tcopt env)
@@ -602,7 +569,7 @@ let add_function_type env fty logged =
 type class_get_pu =
   ?from_class:Nast.class_id_ ->
   env ->
-  locl ty ->
+  locl_ty ->
   string ->
   env * (expand_env * pu_enum_type) option
 

@@ -1525,6 +1525,15 @@ SSATmp* simplifyEqCls(State& env, const IRInstruction* inst) {
   return nullptr;
 }
 
+SSATmp* simplifyEqRecDesc(State& env, const IRInstruction* inst) {
+  auto const left = inst->src(0);
+  auto const right = inst->src(1);
+  if (left->hasConstVal() && right->hasConstVal()) {
+    return cns(env, left->recVal() == right->recVal());
+  }
+  return nullptr;
+}
+
 SSATmp* simplifyEqStrPtr(State& env, const IRInstruction* inst) {
   auto const left = inst->src(0);
   auto const right = inst->src(1);
@@ -1656,7 +1665,6 @@ SSATmp* isTypeImpl(State& env, const IRInstruction* inst) {
   // the distinction matters to you here, be careful.
   assertx(IMPLIES(type <= TStr, type == TStr));
   assertx(IMPLIES(type <= TArr, type == TArr));
-  assertx(IMPLIES(type <= TShape, type == TShape));
   assertx(IMPLIES(type <= TVec, type == TVec));
   assertx(IMPLIES(type <= TDict, type == TDict));
   assertx(IMPLIES(type <= TKeyset, type == TKeyset));
@@ -2137,7 +2145,6 @@ X(Arr, arrVal, NonDVArr)
 SSATmp* simplifyConvCellToArr(State& env, const IRInstruction* inst) {
   auto const src = inst->src(0);
   if (src->isA(TArr))    return gen(env, ConvArrToNonDVArr, src);
-  if (src->isA(TShape))  return gen(env, ConvShapeToArr, inst->taken(), src);
   if (src->isA(TVec))    return gen(env, ConvVecToArr, src);
   if (src->isA(TDict))   return gen(env, ConvDictToArr, inst->taken(), src);
   if (src->isA(TKeyset)) return gen(env, ConvKeysetToArr, inst->taken(), src);
@@ -2376,10 +2383,6 @@ SSATmp* simplifyConvCellToBool(State& env, const IRInstruction* inst) {
     auto const length = gen(env, CountDict, src);
     return gen(env, NeqInt, length, cns(env, 0));
   }
-  if (srcType <= TShape) {
-    auto const length = gen(env, CountShape, src);
-    return gen(env, NeqInt, length, cns(env, 0));
-  }
   if (srcType <= TKeyset) {
     auto const length = gen(env, CountKeyset, src);
     return gen(env, NeqInt, length, cns(env, 0));
@@ -2426,8 +2429,7 @@ SSATmp* simplifyConvCellToStr(State& env, const IRInstruction* inst) {
     );
   }
   if (srcType <= TNull)   return cns(env, staticEmptyString());
-  if (srcType <= TArr ||
-      (!RuntimeOption::EvalHackArrDVArrs && srcType <= TShape)) {
+  if (srcType <= TArr){
     gen(env, RaiseNotice, catchTrace, cns(env, s_msgArrToStr.get()));
     return cns(env, s_Array.get());
   }
@@ -2435,8 +2437,7 @@ SSATmp* simplifyConvCellToStr(State& env, const IRInstruction* inst) {
     gen(env, RaiseNotice, catchTrace, cns(env, s_msgVecToStr.get()));
     return cns(env, s_Vec.get());
   }
-  if (srcType <= TDict ||
-      (RuntimeOption::EvalHackArrDVArrs && srcType <= TShape)) {
+  if (srcType <= TDict) {
     gen(env, RaiseNotice, catchTrace, cns(env, s_msgDictToStr.get()));
     return cns(env, s_Dict.get());
   }
@@ -2483,10 +2484,6 @@ SSATmp* simplifyConvCellToInt(State& env, const IRInstruction* inst) {
     auto const length = gen(env, Count, src);
     return gen(env, Select, length, cns(env, 1), cns(env, 0));
   }
-  if (srcType <= TShape) {
-    auto const length = gen(env, CountShape, src);
-    return gen(env, Select, length, cns(env, 1), cns(env, 0));
-  }
   if (srcType <= TVec) {
     auto const length = gen(env, CountVec, src);
     return gen(env, Select, length, cns(env, 1), cns(env, 0));
@@ -2527,10 +2524,6 @@ SSATmp* simplifyConvCellToDbl(State& env, const IRInstruction* inst) {
   if (srcType <= TDbl)  return src;
   if (srcType <= TNull) return cns(env, 0.0);
   if (srcType <= TArr)  return gen(env, ConvArrToDbl, src);
-  if (srcType <= TShape) {
-    auto const length = gen(env, CountShape, src);
-    return gen(env, ConvBoolToDbl, gen(env, ConvIntToBool, length));
-  }
   if (srcType <= TVec) {
     auto const length = gen(env, CountVec, src);
     return gen(env, ConvBoolToDbl, gen(env, ConvIntToBool, length));
@@ -3436,7 +3429,6 @@ SSATmp* simplifyCount(State& env, const IRInstruction* inst) {
   if (ty <= oneTy) return cns(env, 1);
 
   if (ty <= TArr) return gen(env, CountArray, val);
-  if (ty <= TShape) return gen(env, CountShape, val);
   if (ty <= TVec) return gen(env, CountVec, val);
   if (ty <= TDict) return gen(env, CountDict, val);
   if (ty <= TKeyset) return gen(env, CountKeyset, val);
@@ -3500,10 +3492,6 @@ SSATmp* simplifyCountVec(State& env, const IRInstruction* inst) {
 
 SSATmp* simplifyCountDict(State& env, const IRInstruction* inst) {
   return simplifyCountHelper(env, inst, TDict, &SSATmp::dictVal);
-}
-
-SSATmp* simplifyCountShape(State& env, const IRInstruction* inst) {
-  return simplifyCountHelper(env, inst, TShape, &SSATmp::shapeVal);
 }
 
 SSATmp* simplifyCountKeyset(State& env, const IRInstruction* inst) {
@@ -3919,7 +3907,6 @@ SSATmp* simplifyWork(State& env, const IRInstruction* inst) {
   X(CountArrayFast)
   X(CountVec)
   X(CountDict)
-  X(CountShape)
   X(CountKeyset)
   X(DecRef)
   X(DecRefNZ)

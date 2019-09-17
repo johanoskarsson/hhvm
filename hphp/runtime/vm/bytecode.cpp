@@ -712,8 +712,6 @@ static std::string toStringElm(const TypedValue* tv) {
   case KindOfDict:
   case KindOfPersistentKeyset:
   case KindOfKeyset:
-  case KindOfPersistentShape:
-  case KindOfShape:
   case KindOfPersistentArray:
   case KindOfArray:
   case KindOfObject:
@@ -782,14 +780,6 @@ static std::string toStringElm(const TypedValue* tv) {
       os << tv->m_data.parr;
       print_count();
       os << ":Keyset";
-      continue;
-    case KindOfPersistentShape:
-    case KindOfShape:
-      assertx(tv->m_data.parr->isShape());
-      assertx(tv->m_data.parr->checkCount());
-      os << tv->m_data.parr;
-      print_count();
-      os << ":Shape";
       continue;
     case KindOfPersistentArray:
     case KindOfArray:
@@ -1605,7 +1595,8 @@ void enterVMAtPseudoMain(ActRec* enterFnAr, VarEnv* varEnv) {
   }
 }
 
-void enterVMAtFunc(ActRec* enterFnAr, StackArgsState stk) {
+void enterVMAtFunc(ActRec* enterFnAr, StackArgsState stk,
+                   bool allowDynCallNoPointer /* = false */) {
   assertx(enterFnAr);
   assertx(!enterFnAr->resumed());
   Stats::inc(Stats::VMEnter);
@@ -1633,7 +1624,7 @@ void enterVMAtFunc(ActRec* enterFnAr, StackArgsState stk) {
   checkForReifiedGenericsErrors(enterFnAr);
   if (!EventHook::FunctionCall(enterFnAr, EventHook::NormalFunc)) return;
   checkStack(vmStack(), enterFnAr->m_func, 0);
-  calleeDynamicCallChecks(enterFnAr);
+  calleeDynamicCallChecks(enterFnAr, allowDynCallNoPointer);
   checkForRequiredCallM(enterFnAr);
   assertx(vmfp()->func()->contains(vmpc()));
 
@@ -1970,29 +1961,14 @@ OPTBLD_INLINE void iopArray(const ArrayData* a) {
   vmStack().pushStaticArray(a);
 }
 
-namespace {
-
-const ArrayData* makeEmptyArray(const ArrayData* base) {
-  if (!RuntimeOption::EvalArrayProvenancePromoteEmptyArrays ||
-      !base->empty()) {
-    return base;
-  }
-  assertx(base->empty());
-  assertx(base->isStatic());
-
-  return arrprov::makeEmptyArray(base);
-}
-
-}
-
 OPTBLD_INLINE void iopVec(const ArrayData* a) {
   assertx(a->isVecArray());
-  vmStack().pushStaticVec(makeEmptyArray(a));
+  vmStack().pushStaticVec(a);
 }
 
 OPTBLD_INLINE void iopDict(const ArrayData* a) {
   assertx(a->isDict());
-  vmStack().pushStaticDict(makeEmptyArray(a));
+  vmStack().pushStaticDict(a);
 }
 
 OPTBLD_INLINE void iopKeyset(const ArrayData* a) {
@@ -2897,8 +2873,6 @@ void iopSwitch(PC origpc, PC& pc, SwitchKind kind, int64_t base,
             case KindOfDict:
             case KindOfPersistentKeyset:
             case KindOfKeyset:
-            case KindOfPersistentShape:
-            case KindOfShape:
             case KindOfPersistentArray:
             case KindOfArray:
             case KindOfObject:
@@ -2929,12 +2903,6 @@ void iopSwitch(PC origpc, PC& pc, SwitchKind kind, int64_t base,
         case KindOfKeyset:
           tvDecRefArr(val);
         case KindOfPersistentKeyset:
-          match = SwitchMatch::DEFAULT;
-          return;
-
-        case KindOfShape:
-          tvDecRefArr(val);
-        case KindOfPersistentShape:
           match = SwitchMatch::DEFAULT;
           return;
 
@@ -4111,7 +4079,7 @@ OPTBLD_INLINE static bool isTypeHelper(Cell* val, IsTypeOp op) {
                !RuntimeOption::EvalLogArrayProvenance) ||
         vmfp()->m_func->isBuiltin()) {
       return is_array(val);
-    } else if (isArrayOrShapeType(val->m_type)) {
+    } else if (isArrayType(val->m_type)) {
       return true;
     } else if (isVecType(val->m_type)) {
       if (RuntimeOption::EvalHackArrCompatIsArrayNotices) {
@@ -4120,7 +4088,7 @@ OPTBLD_INLINE static bool isTypeHelper(Cell* val, IsTypeOp op) {
       if (RuntimeOption::EvalLogArrayProvenance) {
         raise_array_serialization_notice("is_array", val->m_data.parr);
       }
-    } else if (isDictOrShapeType(val->m_type)) {
+    } else if (isDictType(val->m_type)) {
       if (RuntimeOption::EvalHackArrCompatIsArrayNotices) {
         raise_hackarr_compat_notice(Strings::HACKARR_COMPAT_DICT_IS_ARR);
       }
@@ -4150,7 +4118,7 @@ OPTBLD_INLINE static bool isTypeHelper(Cell* val, IsTypeOp op) {
   }
   case IsTypeOp::Dict: {
     if (UNLIKELY(RuntimeOption::EvalHackArrCompatIsVecDictNotices)) {
-      if (isArrayOrShapeType(val->m_type)) {
+      if (isArrayType(val->m_type)) {
         if (val->m_data.parr->isDArray()) {
           raise_hackarr_compat_notice(Strings::HACKARR_COMPAT_DARR_IS_DICT);
         }
@@ -4309,25 +4277,17 @@ OPTBLD_INLINE void iopGetMemoKeyL(local_var loc) {
   cellCopy(key, *vmStack().allocC());
 }
 
-namespace {
-const StaticString s_idx("hh\\idx");
-
-TypedValue genericIdx(TypedValue obj, TypedValue key, TypedValue def) {
-  static auto func = Unit::loadFunc(s_idx.get());
-  assertx(func != nullptr);
-  TypedValue args[] = {
-    obj,
-    key,
-    def
-  };
-  return g_context->invokeFuncFew(func, nullptr, nullptr, 3, &args[0]);
-}
-}
-
 OPTBLD_INLINE void iopIdx() {
   TypedValue* def = vmStack().topTV();
   TypedValue* key = vmStack().indTV(1);
   TypedValue* arr = vmStack().indTV(2);
+
+  if (isNullType(key->m_type)) {
+    tvDecRefGen(arr);
+    *arr = *def;
+    vmStack().ndiscard(2);
+    return;
+  }
 
   TypedValue result;
   if (isArrayLikeType(arr->m_type)) {
@@ -4335,18 +4295,32 @@ OPTBLD_INLINE void iopIdx() {
                                      tvAsCVarRef(key),
                                      tvAsCVarRef(def));
     vmStack().popTV();
-  } else if (isNullType(key->m_type)) {
-    tvDecRefGen(arr);
-    *arr = *def;
-    vmStack().ndiscard(2);
-    return;
-  } else if (!isStringType(arr->m_type) &&
-             arr->m_type != KindOfObject) {
+  } else if (arr->m_type == KindOfObject) {
+    auto obj = arr->m_data.pobj;
+    if (obj->isCollection() && collections::contains(obj, tvAsCVarRef(key))) {
+      result = collections::at(obj, key).tv();
+      tvIncRefGen(result);
+      vmStack().popTV();
+    } else {
+      result = *def;
+      vmStack().discard();
+    }
+  } else if (isStringType(arr->m_type)) {
+    // This replicates the behavior of the hack implementation of idx, which
+    // first checks isset($arr[$idx]), then returns $arr[(int)$idx]
+    auto str = arr->m_data.pstr;
+    if (IssetEmptyElemString<false, KeyType::Any>(str, *key)) {
+      auto idx = tvCastToInt64(*key);
+      assertx(idx >= 0 && idx < str->size());
+      result = make_tv<KindOfPersistentString>(str->getChar(idx));
+      vmStack().popTV();
+    } else {
+      result = *def;
+      vmStack().discard();
+    }
+  } else {
     result = *def;
     vmStack().discard();
-  } else {
-    result = genericIdx(*arr, *key, *def);
-    vmStack().popTV();
   }
   vmStack().popTV();
   tvDecRefGen(arr);

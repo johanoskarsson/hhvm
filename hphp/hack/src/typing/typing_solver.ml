@@ -157,7 +157,7 @@ and freshen_tparams env variancel tyl =
 let var_occurs_in_ty env var ty =
   let finder =
     object
-      inherit [env * bool] Type_visitor.type_visitor
+      inherit [env * bool] Type_visitor.locl_type_visitor
 
       method! on_tvar (env, occurs) _r v =
         if occurs then
@@ -217,7 +217,7 @@ let remove_tyvar_from_lower_bound env var r lower_bound =
     | (_, Tvar v) when v = var -> (env, MakeType.nothing r)
     | (r, Toption ty) ->
       let (env, ty) = remove env ty in
-      (env, MakeType.nullable r ty)
+      (env, MakeType.nullable_locl r ty)
     | (r, Tunion tyl) ->
       let (env, tyl) = List.fold_map tyl ~init:env ~f:remove in
       let tyl = List.filter tyl ~f:(fun ty -> not (is_nothing ty)) in
@@ -264,7 +264,7 @@ let remove_tyvar_from_upper_bound env var r upper_bound =
     | (_, Tvar v) when v = var -> (env, MakeType.mixed r)
     | (r, Toption ty) ->
       let (env, ty) = remove env ty in
-      (env, MakeType.nullable r ty)
+      (env, MakeType.nullable_locl r ty)
     | (r, Tunion tyl) ->
       let (env, tyl) = List.fold_map tyl ~init:env ~f:remove in
       let ty =
@@ -555,9 +555,11 @@ let solve_tyvar_wrt_variance env r var on_error =
         log_types
           (Reason.to_pos r)
           env
-          [ Log_head
+          [
+            Log_head
               ( Printf.sprintf "Typing_subtype.solve_tyvar_wrt_variance #%d" var,
-                [] ) ]));
+                [] );
+          ]));
 
   (* If there is a type that is both a lower and upper bound, force to that type *)
   let env = try_bind_to_equal_bound ~freshen:false env r var on_error in

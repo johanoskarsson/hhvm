@@ -246,6 +246,8 @@ module NastCheck = struct
     | ByRefDynamicCall
     | ByRefProperty
     | ByRefCall
+    | SwitchNonTerminalDefault
+    | SwitchMultipleDefault
   (* EXTEND HERE WITH NEW VALUES IF NEEDED *)
   [@@deriving enum, show { with_path = false }]
 
@@ -284,9 +286,9 @@ module Typing = struct
     | ExpectedStaticIntDEPRECATED
     | ExpectedTparam
     | ExpectingReturnTypeHint
-    | ExpectingReturnTypeHintSuggest
+    | ExpectingReturnTypeHintSuggestDEPRECATED
     | ExpectingTypeHint
-    | ExpectingTypeHintSuggest
+    | ExpectingTypeHintVariadic
     | RetiredError4034DEPRECATED
     | ExtendFinal
     | FieldKinds
@@ -602,6 +604,8 @@ module Typing = struct
     | ClassGetReified
     | RequireGenericExplicit
     | ClassConstantTypeMismatch
+    | PocketUniversesExpansion
+    | PocketUniversesTyping
   (* EXTEND HERE WITH NEW VALUES IF NEEDED *)
   [@@deriving enum, show { with_path = false }]
 

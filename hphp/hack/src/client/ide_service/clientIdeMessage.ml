@@ -21,14 +21,17 @@ type document_location = {
   line: int;
   column: int;
 }
+
+type document_and_path = {
+  file_path: Path.t;
+  file_contents: string;
+}
+
 (** Denotes a location of the cursor in a document at which an IDE request is
 being executed (e.g. hover). *)
 
 module File_opened = struct
-  type request = {
-    file_path: Path.t;
-    file_contents: string;
-  }
+  type request = document_and_path
 end
 
 module Hover = struct
@@ -94,6 +97,19 @@ module Signature_help = struct
   type result = Lsp.SignatureHelp.result
 end
 
+(* Handles "textDocument/documentSymbol" LSP messages *)
+module Document_symbol = struct
+  type request = { file_contents: string option }
+
+  type result = FileOutline.outline
+end
+
+module Type_coverage = struct
+  type request = document_and_path
+
+  type result = Coverage_level_defs.result
+end
+
 (* GADT for request/response types. See [ServerCommandTypes] for a discussion on
    using GADTs in this way. *)
 type _ t =
@@ -113,7 +129,9 @@ type _ t =
   | Document_highlight :
       Document_highlight.request
       -> Document_highlight.result t
+  | Document_symbol : Document_symbol.request -> Document_symbol.result t
   | Type_definition : Type_definition.request -> Type_definition.result t
+  | Type_coverage : Type_coverage.request -> Type_coverage.result t
   | Signature_help : Signature_help.request -> Signature_help.result t
 
 type notification = Done_processing

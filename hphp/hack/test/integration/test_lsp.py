@@ -582,15 +582,211 @@ class TestLsp(TestCase[LspTestDriver]):
         )
         self.run_spec(spec, variables, wait_for_server=False, use_serverless_ide=True)
 
+    def test_serverless_ide_document_symbol(self) -> None:
+        variables = dict(self.prepare_serverless_ide_environment())
+        variables.update(self.setup_php_file("definition.php"))
+        self.test_driver.stop_hh_server()
+
+        spec = (
+            self.initialize_spec(
+                LspTestSpec("serverless_ide_document_symbol"), use_serverless_ide=True
+            )
+            .notification(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "${php_file_uri}",
+                        "languageId": "hack",
+                        "version": 1,
+                        "text": "${php_file}",
+                    }
+                },
+            )
+            .request(
+                comment="documentSymbol call",
+                method="textDocument/documentSymbol",
+                params={"textDocument": {"uri": "${php_file_uri}"}},
+                result=[
+                    {
+                        "name": "testClassMemberInsideConstructorInvocation",
+                        "kind": 12,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 44, "character": 0},
+                                "end": {"line": 46, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "MyString",
+                        "kind": 14,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 41, "character": 8},
+                                "end": {"line": 41, "character": 29},
+                            },
+                        },
+                        "containerName": "HasString",
+                    },
+                    {
+                        "name": "HasString",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 40, "character": 0},
+                                "end": {"line": 42, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "__construct",
+                        "kind": 6,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 37, "character": 2},
+                                "end": {"line": 37, "character": 43},
+                            },
+                        },
+                        "containerName": "TakesString",
+                    },
+                    {
+                        "name": "TakesString",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 36, "character": 0},
+                                "end": {"line": 38, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "FF",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 26, "character": 0},
+                                "end": {"line": 26, "character": 11},
+                            },
+                        },
+                    },
+                    {
+                        "name": "__construct",
+                        "kind": 6,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 21, "character": 2},
+                                "end": {"line": 23, "character": 3},
+                            },
+                        },
+                        "containerName": "EE",
+                    },
+                    {
+                        "name": "EE",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 20, "character": 0},
+                                "end": {"line": 24, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "CC",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 14, "character": 0},
+                                "end": {"line": 15, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "__construct",
+                        "kind": 6,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 11, "character": 2},
+                                "end": {"line": 11, "character": 40},
+                            },
+                        },
+                        "containerName": "BB",
+                    },
+                    {
+                        "name": "BB",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 10, "character": 0},
+                                "end": {"line": 12, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "a_definition",
+                        "kind": 12,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 2, "character": 0},
+                                "end": {"line": 4, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "b_definition",
+                        "kind": 12,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 6, "character": 0},
+                                "end": {"line": 8, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "DD",
+                        "kind": 5,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 17, "character": 0},
+                                "end": {"line": 18, "character": 1},
+                            },
+                        },
+                    },
+                    {
+                        "name": "test",
+                        "kind": 12,
+                        "location": {
+                            "uri": "file://${root_path}/definition.php",
+                            "range": {
+                                "start": {"line": 28, "character": 0},
+                                "end": {"line": 34, "character": 1},
+                            },
+                        },
+                    },
+                ],
+                powered_by="serverless_ide",
+            )
+            .request(method="shutdown", params={}, result=None)
+        )
+        self.run_spec(spec, variables, wait_for_server=False, use_serverless_ide=True)
+
     def test_type_definition(self) -> None:
         self.prepare_server_environment()
         variables = self.setup_php_file("type_definition.php")
         self.load_and_run("type_definition", variables)
-
-    def test_hover(self) -> None:
-        self.prepare_server_environment()
-        variables = self.setup_php_file("hover.php")
-        self.load_and_run("hover", variables)
 
     def initialize_spec(
         self, spec: LspTestSpec, use_serverless_ide: bool
@@ -978,17 +1174,329 @@ class TestLsp(TestCase[LspTestDriver]):
         self.load_and_run("ontypeformatting", variables)
 
     def test_did_change(self) -> None:
-        # Disabling this test because it has a race condition:
-        # see T27194253 for transcript
-        # self.prepare_server_environment()
-        # variables = self.setup_php_file('didchange.php')
-        # self.load_and_run('didchange', variables)
-        return
+        self.prepare_server_environment()
+        variables = self.setup_php_file("didchange.php")
+        spec = (
+            self.initialize_spec(LspTestSpec("did_change"), use_serverless_ide=False)
+            .wait_for_hh_server_ready()
+            .notification(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "${php_file_uri}",
+                        "languageId": "hack",
+                        "version": 1,
+                        "text": "${php_file}",
+                    }
+                },
+            )
+            .notification(
+                method="textDocument/didChange",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "contentChanges": [
+                        {
+                            "range": {
+                                "start": {"line": 7, "character": 11},
+                                "end": {"line": 7, "character": 12},
+                            },
+                            "text": "a",
+                        }
+                    ],
+                },
+            )
+            .wait_for_notification(
+                method="textDocument/publishDiagnostics",
+                params={
+                    "uri": "${php_file_uri}",
+                    "diagnostics": [
+                        {
+                            "range": {
+                                "start": {"line": 7, "character": 11},
+                                "end": {"line": 7, "character": 11},
+                            },
+                            "severity": 1,
+                            "code": 1002,
+                            "source": "Hack",
+                            "message": "A semicolon (';') is expected here.",
+                            "relatedLocations": [],
+                            "relatedInformation": [],
+                        }
+                    ],
+                },
+            )
+            .request(method="shutdown", params={}, result=None)
+            .wait_for_notification(
+                comment="Hack appears to clear out diagnostics before shutting down",
+                method="textDocument/publishDiagnostics",
+                params={"uri": "${php_file_uri}", "diagnostics": []},
+            )
+        )
+        self.run_spec(spec, variables, wait_for_server=True, use_serverless_ide=False)
 
     def test_signature_help(self) -> None:
         self.prepare_server_environment()
         variables = self.setup_php_file("signaturehelp.php")
-        self.load_and_run("signaturehelp", variables)
+        spec = (
+            self.initialize_spec(
+                LspTestSpec("test_signature_help"), use_serverless_ide=False
+            )
+            .wait_for_hh_server_ready()
+            .notification(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "${php_file_uri}",
+                        "languageId": "hack",
+                        "version": 1,
+                        "text": "${php_file}",
+                    }
+                },
+            )
+            .request(
+                comment="signature help for 0-argument constructor (left of opening paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 16, "character": 18},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 0-argument constructor",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 16, "character": 19},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "public function __construct(): _",
+                            "documentation": "Constructor with doc block",
+                            "parameters": [],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 0,
+                },
+            )
+            .request(
+                comment="signature help for 0-argument constructor (right of closing paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 16, "character": 20},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 2-argument instance method (left of opening paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 17, "character": 20},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 2-argument instance method (right of opening paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 17, "character": 21},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "public function instanceMethod(int $x1, int $x2): void",
+                            "documentation": "Instance method with doc block",
+                            "parameters": [{"label": "$x1"}, {"label": "$x2"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 0,
+                },
+            )
+            .request(
+                comment="signature help for 2-argument instance method (left of first comma)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 17, "character": 22},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "public function instanceMethod(int $x1, int $x2): void",
+                            "documentation": "Instance method with doc block",
+                            "parameters": [{"label": "$x1"}, {"label": "$x2"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 1,
+                },
+            )
+            .request(
+                comment="signature help for 2-argument instance method (right of first comma)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 17, "character": 23},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "public function instanceMethod(int $x1, int $x2): void",
+                            "documentation": "Instance method with doc block",
+                            "parameters": [{"label": "$x1"}, {"label": "$x2"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 1,
+                },
+            )
+            .request(
+                comment="signature help for 2-argument instance method (left of closing paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 17, "character": 24},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "public function instanceMethod(int $x1, int $x2): void",
+                            "documentation": "Instance method with doc block",
+                            "parameters": [{"label": "$x1"}, {"label": "$x2"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 1,
+                },
+            )
+            .request(
+                comment="signature help for 2-argument instance method (right of closing paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 17, "character": 25},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 1-argument static method (left of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 18, "character": 23},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 1-argument static method (right of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 18, "character": 24},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "public static function staticMethod(string $z): void",
+                            "documentation": "Static method with doc block",
+                            "parameters": [{"label": "$z"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 0,
+                },
+            )
+            .request(
+                comment="signature help for 2-argument global function (left of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 19, "character": 17},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 2-argument global function (right of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 19, "character": 18},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "function global_function(string $s, int $x): void",
+                            "documentation": "Global function with doc block",
+                            "parameters": [{"label": "$s"}, {"label": "$x"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 0,
+                },
+            )
+            .request(
+                comment="signature help for 1-argument namespace-aliased global function (left of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 20, "character": 26},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 1-argument namespace-aliased global function (right of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 20, "character": 26},
+                },
+                result=None,
+            )
+            .request(
+                comment="signature help for 1-argument namespace-aliased global function (right of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 20, "character": 27},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "function Herp\\aliased_global_func(string $s): void",
+                            "parameters": [{"label": "$s"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 0,
+                },
+            )
+            .request(
+                comment="signature help for 1-argument namespace-aliased global function (right of open paren)",
+                method="textDocument/signatureHelp",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 20, "character": 28},
+                },
+                result={
+                    "signatures": [
+                        {
+                            "label": "function Herp\\aliased_global_func(string $s): void",
+                            "parameters": [{"label": "$s"}],
+                        }
+                    ],
+                    "activeSignature": 0,
+                    "activeParameter": 0,
+                },
+            )
+            .request(method="shutdown", params={}, result=None)
+        )
+        self.run_spec(spec, variables, wait_for_server=True, use_serverless_ide=False)
 
     def test_rename(self) -> None:
         self.prepare_server_environment()
@@ -1229,3 +1737,230 @@ function b_hover(): string {
         )
 
         self.run_spec(spec, variables, wait_for_server=False, use_serverless_ide=True)
+
+    def _sanitize_gutter_line_numbers(self, s: str) -> str:
+        gutter_line_number_re = re.compile(r"^[ ]*[0-9]+ \|", re.MULTILINE)
+        return re.sub(gutter_line_number_re, " XXXX |", s)
+
+    def test_lsptestspec_incorrect_request_result(self) -> None:
+        variables = dict(self.prepare_serverless_ide_environment())
+        variables.update(self.setup_php_file("hover.php"))
+        self.test_driver.stop_hh_server()
+
+        spec = (
+            self.initialize_spec(LspTestSpec("bad_hover"), use_serverless_ide=True)
+            .notification(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "${php_file_uri}",
+                        "languageId": "hack",
+                        "version": 1,
+                        "text": "${php_file}",
+                    }
+                },
+            )
+            .request(
+                comment="hover over function invocation",
+                method="textDocument/hover",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "position": {"line": 3, "character": 16},
+                },
+                result={
+                    "contents": [
+                        {"language": "hack", "value": "int"},
+                        "INCORRECT COMMENT HERE",
+                    ],
+                    "range": {
+                        "start": {"line": 3, "character": 9},
+                        "end": {"line": 3, "character": 16},
+                    },
+                },
+                powered_by="serverless_ide",
+            )
+            .request(method="shutdown", params={}, result=None)
+        )
+        try:
+            self.run_spec(
+                spec,
+                variables=variables,
+                wait_for_server=False,
+                use_serverless_ide=True,
+            )
+            assert False, "No assertion failure raised"
+        except AssertionError as e:
+            self.assertEqual(
+                self._sanitize_gutter_line_numbers(str(e)),
+                """\
+Test case bad_hover failed with 1 errors:
+
+Error 1/1:
+Description: Request with ID 4 (comment: 'hover over function invocation') \
+got an incorrect result:
+
+(+ is expected lines, - is actual lines)
+- {'contents': [{'language': 'hack', 'value': 'int'},
++ {'contents': [{'language': 'hack', 'value': 'int'}, 'INCORRECT COMMENT HERE'],
+?                                                    +++++++++++++++++++++++++++
+
+-               'A comment describing b_hover.'],
+   'range': {'end': {'character': 16, 'line': 3},
+             'start': {'character': 9, 'line': 3}}}
+
+Context:
+This was the associated request:
+
+hphp/hack/test/integration/test_lsp.py
+ XXXX |             .request(
+ XXXX |                 comment="hover over function invocation",
+ XXXX |                 method="textDocument/hover",
+ XXXX |                 params={
+ XXXX |                     "textDocument": {"uri": "${php_file_uri}"},
+ XXXX |                     "position": {"line": 3, "character": 16},
+ XXXX |                 },
+ XXXX |                 result={
+ XXXX |                     "contents": [
+ XXXX |                         {"language": "hack", "value": "int"},
+ XXXX |                         "INCORRECT COMMENT HERE",
+ XXXX |                     ],
+ XXXX |                     "range": {
+ XXXX |                         "start": {"line": 3, "character": 9},
+ XXXX |                         "end": {"line": 3, "character": 16},
+ XXXX |                     },
+ XXXX |                 },
+ XXXX |                 powered_by="serverless_ide",
+ XXXX |             )
+
+Remediation:
+1) If this was unexpected, then the language server is buggy and should be
+fixed.
+
+2) If this was expected, you can update your request with the following code to
+make it match:
+
+    .request(
+        comment='hover over function invocation',
+        method='textDocument/hover',
+        params={'textDocument': {'uri': '${php_file_uri}'}, \
+'position': {'line': 3, 'character': 16}},
+        result={'contents': [{'language': 'hack', 'value': 'int'}, \
+'A comment describing b_hover.'], \
+'range': {'start': {'line': 3, 'character': 9}, \
+'end': {'line': 3, 'character': 16}}},
+        powered_by='serverless_ide',
+    )
+
+If you want to examine the raw LSP logs, you can check the `.sent.log` and
+`.received.log` files that were generated in the template repo for this test.\
+""",
+            )
+
+    def test_lsptestspec_unexpected_notification(self) -> None:
+        self.prepare_server_environment()
+        variables = self.setup_php_file("didchange.php")
+        spec = (
+            self.initialize_spec(LspTestSpec("did_change"), use_serverless_ide=False)
+            .wait_for_hh_server_ready()
+            .notification(
+                method="textDocument/didOpen",
+                params={
+                    "textDocument": {
+                        "uri": "${php_file_uri}",
+                        "languageId": "hack",
+                        "version": 1,
+                        "text": "${php_file}",
+                    }
+                },
+            )
+            .notification(
+                method="textDocument/didChange",
+                params={
+                    "textDocument": {"uri": "${php_file_uri}"},
+                    "contentChanges": [
+                        {
+                            "range": {
+                                "start": {"line": 7, "character": 11},
+                                "end": {"line": 7, "character": 12},
+                            },
+                            "text": "a",
+                        }
+                    ],
+                },
+            )
+            .wait_for_notification(
+                method="textDocument/publishDiagnostics",
+                params={
+                    "uri": "${php_file_uri}",
+                    "diagnostics": [
+                        {
+                            "range": {
+                                "start": {"line": 7, "character": 11},
+                                "end": {"line": 7, "character": 11},
+                            },
+                            "severity": 1,
+                            "code": 1002,
+                            "source": "Hack",
+                            "message": "A semicolon (';') is expected here.",
+                            "relatedLocations": [],
+                            "relatedInformation": [],
+                        }
+                    ],
+                },
+            )
+            .request(method="shutdown", params={}, result=None)
+        )
+        try:
+            self.run_spec(
+                spec, variables, wait_for_server=True, use_serverless_ide=False
+            )
+            assert False, "No assertion failure raised"
+        except AssertionError as e:
+            self.assertEqual(
+                self._sanitize_gutter_line_numbers(str(e)),
+                """\
+Test case did_change failed with 1 errors:
+
+Error 1/1:
+Description: An unexpected notification of type \
+'textDocument/publishDiagnostics' was sent by the language server.
+Here is the notification payload:
+
+  {'jsonrpc': '2.0',
+   'method': 'textDocument/publishDiagnostics',
+   'params': {'diagnostics': [],
+              'uri': '__PHP_FILE_URI__'}}
+
+Context:
+This was the most recent request issued from the language client before it
+received the notification:
+
+hphp/hack/test/integration/test_lsp.py
+ XXXX |             .request(method="shutdown", params={}, result=None)
+
+Remediation:
+1) If this was unexpected, then the language server is buggy and should be
+fixed.
+
+2) If all notifications of type 'textDocument/publishDiagnostics' should be \
+ignored, add this directive
+anywhere in your test:
+
+    .ignore_notifications(method='textDocument/publishDiagnostics')
+
+3) If this single instance of the notification was expected, add this directive
+to your test to wait for it before proceeding:
+
+    .wait_for_notification(
+        method='textDocument/publishDiagnostics',
+        params={'uri': '${php_file_uri}', 'diagnostics': []},
+    )
+
+If you want to examine the raw LSP logs, you can check the `.sent.log` and
+`.received.log` files that were generated in the template repo for this test.\
+"""
+                # There's an instance of a literal `${php_file_uri}` in there
+                # which we don't want to change, so use a different name than
+                # that one.
+                .replace("__PHP_FILE_URI__", variables["php_file_uri"]),
+            )

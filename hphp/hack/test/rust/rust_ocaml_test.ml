@@ -323,7 +323,20 @@ let get_files_in_path ~args path =
            @@ String_utils.string_ends_with f "test_variadic_type_hint.php"
         && not
            @@ String_utils.string_ends_with f "namespace_group_use_decl.php"
+        && (not @@ String_utils.string_ends_with f "parser_massive_add_exp.php")
+        && not
+           @@ String_utils.string_ends_with f "parser_massive_concat_exp.php"
         && true
+      | LOWERER ->
+        (not @@ String_utils.string_ends_with f "parser_massive_add_exp.php")
+        && not
+           @@ String_utils.string_ends_with f "parser_massive_concat_exp.php"
+        && not
+           @@ String_utils.string_ends_with
+                f
+                "parser_reasonable_nested_array.php"
+        && (not @@ String_utils.string_ends_with f "bug64555.php")
+        && (not @@ String_utils.string_ends_with f "bug64660.php")
       | _ -> true)
     files
 
@@ -346,7 +359,8 @@ let parse_args () =
   let filter = ref "" in
   let dir = ref None in
   let options =
-    [ ("--rust", Arg.Unit (fun () -> mode := RUST), "");
+    [
+      ("--rust", Arg.Unit (fun () -> mode := RUST), "");
       ("--ocaml", Arg.Unit (fun () -> mode := OCAML), "");
       ("--positioned", Arg.Unit (fun () -> parser := POSITIONED), "");
       ("--coroutine", Arg.Unit (fun () -> parser := COROUTINE), "");
@@ -373,7 +387,8 @@ let parse_args () =
       ("--dir", Arg.String (fun s -> dir := Some s), "");
       ( "--hhvm-tests",
         Arg.Unit (fun () -> dir := Some (fbcode ^ "hphp/test/")),
-        "" ) ]
+        "" );
+    ]
   in
   Arg.parse options (fun _ -> ()) "";
   {
@@ -464,7 +479,11 @@ module LowererTest_ = struct
 
   type r =
     | Tree of (Ast_defs.pos, unit, unit, unit) Aast.program
-    | Crash
+    | Crash of string
+
+  let print_err path s =
+    let oc = Pervasives.open_out path in
+    Printf.fprintf oc "%s\n" s
 
   let print_aast path aast =
     let print_pos pos = Format.asprintf "(%a)" Pos.pp pos in
@@ -482,10 +501,13 @@ module LowererTest_ = struct
       OcamlLowerer.make_env file ~keep_errors:false ~elaborate_namespaces:false
     in
     try
+      (Errors.is_hh_fixme := (fun _ _ -> false));
+      (Errors.get_hh_fixme_pos := (fun _ _ -> None));
+      (Errors.is_hh_fixme_disallowed := (fun _ _ -> false));
       let ast = OcamlLowerer.from_text env source_text in
       let aast = Ast_to_aast.convert_program i () () () ast.OcamlLowerer.ast in
       Tree aast
-    with _ -> Crash
+    with e -> Crash (Caml.Printexc.to_string e)
 
   let build_rust_tree _env file source_text =
     let env = OcamlLowerer.make_env file in
@@ -493,8 +515,8 @@ module LowererTest_ = struct
       let result = RustLowerer.from_text_rust env source_text in
       match result with
       | RustLowerer.Ok aast -> Tree aast.RustLowerer.ast
-      | RustLowerer.Err _ -> Crash
-    with _ -> Crash
+      | RustLowerer.Err s -> Crash s
+    with e -> Crash (Caml.Printexc.to_string e)
 
   let test args ~ocaml_env ~rust_env file contents =
     let source_text = SourceText.make file contents in
@@ -504,18 +526,18 @@ module LowererTest_ = struct
     (match (ocaml_tree, rust_tree) with
     | (Tree ot, Tree rt) when ot = rt -> Printf.printf ":EQUAL: "
     | (Tree _, Tree _) -> Printf.printf ":NOT_EQUAL: "
-    | (Tree _, Crash) -> Printf.printf ":OCAML_PASS: :RUST_CRASH: "
-    | (Crash, Tree _) -> Printf.printf ":OCAML_CRASH: :RUST_PASS: "
-    | (Crash, Crash) -> Printf.printf ":OCAML_CRASH: :RUST_CRASH: ");
+    | (Tree _, Crash _) -> Printf.printf ":OCAML_PASS: :RUST_CRASH: "
+    | (Crash _, Tree _) -> Printf.printf ":OCAML_CRASH: :RUST_PASS: "
+    | (Crash _, Crash _) -> Printf.printf ":OCAML_CRASH: :RUST_CRASH: ");
     Printf.printf "%s\n" path;
     flush stdout;
     if args.check_printed_tree then (
       (match ocaml_tree with
       | Tree t -> print_aast "/tmp/ocaml.aast" t
-      | _ -> ());
+      | Crash e -> print_err "/tmp/ocaml.aast" e);
       match rust_tree with
       | Tree t -> print_aast "/tmp/rust.aast" t
-      | _ -> ()
+      | Crash e -> print_err "/tmp/rust.aast" e
     )
 end
 

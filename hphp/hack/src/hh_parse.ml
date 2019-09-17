@@ -62,7 +62,6 @@ module FullFidelityParseArgs = struct
     files: string list;
     dump_nast: bool;
     disable_lval_as_an_expression: bool;
-    pocket_universes: bool;
     rust_parser_errors: bool;
     enable_constant_visibility_modifiers: bool;
     enable_class_level_where_clauses: bool;
@@ -100,7 +99,6 @@ module FullFidelityParseArgs = struct
       files
       dump_nast
       disable_lval_as_an_expression
-      pocket_universes
       rust_parser_errors
       enable_constant_visibility_modifiers
       enable_class_level_where_clauses
@@ -136,7 +134,6 @@ module FullFidelityParseArgs = struct
       files;
       dump_nast;
       disable_lval_as_an_expression;
-      pocket_universes;
       rust_parser_errors;
       enable_constant_visibility_modifiers;
       enable_class_level_where_clauses;
@@ -187,7 +184,6 @@ module FullFidelityParseArgs = struct
     let dump_nast = ref false in
     let disable_lval_as_an_expression = ref false in
     let set_show_file_name () = show_file_name := true in
-    let pocket_universes = ref false in
     let files = ref [] in
     let push_file file = files := file :: !files in
     let rust_parser_errors = ref false in
@@ -201,10 +197,11 @@ module FullFidelityParseArgs = struct
     let abstract_static_props = ref false in
     let disable_halt_compiler = ref false in
     let options =
-      [ (* modes *)
-        ( "--full-fidelity-json",
-          Arg.Unit set_full_fidelity_json,
-          "Displays the full-fidelity parse tree in JSON format." );
+      [
+        (* modes *)
+          ( "--full-fidelity-json",
+            Arg.Unit set_full_fidelity_json,
+            "Displays the full-fidelity parse tree in JSON format." );
         ( "--full-fidelity-text-json",
           Arg.Unit set_full_fidelity_text_json,
           "Displays the full-fidelity parse tree in JSON format with token text."
@@ -303,9 +300,6 @@ No errors are filtered out."
         ( "--disable-lval-as-an-expression",
           Arg.Set disable_lval_as_an_expression,
           "Disable lval as an expression." );
-        ( "--pocket-universes",
-          Arg.Set pocket_universes,
-          "Enables support for Pocket Universes" );
         ( "--rust-parser-errors",
           Arg.Bool (fun x -> rust_parser_errors := x),
           "Use the parser errors written in Rust instead of OCaml one" );
@@ -338,11 +332,13 @@ No errors are filtered out."
           "Enable abstract static properties" );
         ( "--disable-halt-compiler",
           Arg.Set disable_halt_compiler,
-          "Disable using PHP __halt_compiler()" ) ]
+          "Disable using PHP __halt_compiler()" );
+      ]
     in
     Arg.parse options push_file usage;
     let modes =
-      [ !full_fidelity_json;
+      [
+        !full_fidelity_json;
         !full_fidelity_text_json;
         !full_fidelity_dot;
         !full_fidelity_dot_edges;
@@ -352,7 +348,8 @@ No errors are filtered out."
         !full_fidelity_ast_s_expr;
         !program_text;
         !pretty_print;
-        !schema ]
+        !schema;
+      ]
     in
     if not (List.exists (fun x -> x) modes) then
       full_fidelity_errors_all := true;
@@ -381,7 +378,6 @@ No errors are filtered out."
       (List.rev !files)
       !dump_nast
       !disable_lval_as_an_expression
-      !pocket_universes
       !rust_parser_errors
       !enable_constant_visibility_modifiers
       !enable_class_level_where_clauses
@@ -413,7 +409,6 @@ let handle_existing_file args filename =
       popt
       args.disable_lval_as_an_expression
   in
-  let popt = ParserOptions.setup_pocket_universes popt args.pocket_universes in
   let popt =
     ParserOptions.with_enable_constant_visibility_modifiers
       popt
@@ -492,9 +487,6 @@ let handle_existing_file args filename =
   let dump_needed = args.full_fidelity_ast_s_expr || args.dump_nast in
   let lowered =
     if dump_needed || print_errors then
-      let popt =
-        GlobalOptions.setup_pocket_universes popt args.pocket_universes
-      in
       let env =
         Full_fidelity_ast.make_env
           ~codegen:args.codegen

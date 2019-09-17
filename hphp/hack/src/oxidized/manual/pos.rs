@@ -5,7 +5,7 @@
 
 use std::ops::Range;
 
-use ocamlrep_derive::IntoOcamlRep;
+use ocamlrep_derive::OcamlRep;
 use ocamlvalue_macro::Ocamlvalue;
 
 use crate::file_pos_large::FilePosLarge;
@@ -13,8 +13,9 @@ use crate::file_pos_small::FilePosSmall;
 use crate::relative_path::{Prefix, RelativePath};
 
 use std::path::PathBuf;
+use std::result::Result::*;
 
-#[derive(Clone, Debug, IntoOcamlRep, Ocamlvalue)]
+#[derive(Clone, Debug, OcamlRep, Ocamlvalue)]
 enum PosImpl {
     Small {
         file: RelativePath,
@@ -30,7 +31,7 @@ enum PosImpl {
 
 use PosImpl::*;
 
-#[derive(Clone, Debug, IntoOcamlRep, Ocamlvalue)]
+#[derive(Clone, Debug, OcamlRep, Ocamlvalue)]
 pub struct Pos(PosImpl);
 
 impl Pos {
@@ -101,6 +102,54 @@ impl Pos {
                 ));
                 Pos(Large { file, start, end })
             }
+        }
+    }
+
+    fn small_to_large_file_pos(p: &FilePosSmall) -> FilePosLarge {
+        let (lnum, col, bol) = p.line_column_beg();
+        FilePosLarge::from_lnum_bol_cnum(lnum, bol, bol + col)
+    }
+
+    pub fn btw_nocheck(x1: Self, x2: Self) -> Self {
+        let inner = match (x1.0, x2.0) {
+            (Small { file, start, .. }, Small { end, .. }) => Small { file, start, end },
+            (Large { file, start, .. }, Large { end, .. }) => Large { file, start, end },
+            (Small { file, start, .. }, Large { end, .. }) => Large {
+                file,
+                start: Box::new(Self::small_to_large_file_pos(&start)),
+                end,
+            },
+            (Large { file, start, .. }, Small { end, .. }) => Large {
+                file,
+                start,
+                end: Box::new(Self::small_to_large_file_pos(&end)),
+            },
+        };
+        Pos(inner)
+    }
+
+    pub fn btw(x1: &Self, x2: &Self) -> Result<Self, String> {
+        if x1.filename() != x2.filename() {
+            // using string concatenation instead of format!,
+            // it is not stable see T52404885
+            Err(String::from("Position in separate files ")
+                + &x1.filename().to_string()
+                + " and "
+                + &x2.filename().to_string())
+        } else if x1.end_cnum() > x2.end_cnum() {
+            Err(String::from("btw: invalid positions")
+                + &x1.end_cnum().to_string()
+                + "and"
+                + &x2.end_cnum().to_string())
+        } else {
+            Ok(Self::btw_nocheck(x1.clone(), x2.clone()))
+        }
+    }
+
+    pub fn end_cnum(&self) -> usize {
+        match &self.0 {
+            Small { end, .. } => end.offset(),
+            Large { end, .. } => end.offset(),
         }
     }
 }

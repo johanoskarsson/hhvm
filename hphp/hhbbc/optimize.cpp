@@ -375,6 +375,7 @@ bool persistence_check(const php::Func* const func) {
         case Op::DefClsNop:
         case Op::DefCns:
         case Op::DefTypeAlias:
+        case Op::DefRecord:
         case Op::Null:
         case Op::True:
         case Op::False:
@@ -1030,9 +1031,6 @@ Bytecode gen_constant(const Cell& cell) {
     case KindOfPersistentKeyset:
       assert(cell.m_data.parr->isKeyset());
       return bc::Keyset { cell.m_data.parr };
-    case KindOfShape:
-    case KindOfPersistentShape:
-      not_implemented();
     case KindOfArray:
       assert(cell.m_data.parr->isStatic());
     case KindOfPersistentArray:

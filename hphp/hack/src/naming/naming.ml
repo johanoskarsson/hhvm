@@ -745,6 +745,7 @@ module Make (GetLocals : GetLocals) = struct
       ?(allow_retonly = false)
       ?(allow_typedef = true)
       ?(allow_wildcard = false)
+      ?(allow_like = false)
       ?(in_where_clause = false)
       ?(tp_depth = 0)
       env
@@ -757,6 +758,7 @@ module Make (GetLocals : GetLocals) = struct
         ~allow_retonly
         ~allow_typedef
         ~allow_wildcard
+        ~allow_like
         ~in_where_clause
         ~tp_depth
         env
@@ -805,18 +807,14 @@ module Make (GetLocals : GetLocals) = struct
       ~allow_retonly
       ~allow_typedef
       ~allow_wildcard
+      ~allow_like
       ~in_where_clause
       ?(tp_depth = 0)
       env
       (p, x) =
     let tcopt = (fst env).tcopt in
-    let pu_enabled =
-      TypecheckerOptions.experimental_feature_enabled
-        tcopt
-        GlobalOptions.tco_experimental_pocket_universes
-    in
-    let like_types_enabled = TypecheckerOptions.like_types tcopt in
-    let hint = hint ~forbid_this ~allow_typedef ~allow_wildcard in
+    let like_type_hints_enabled = TypecheckerOptions.like_type_hints tcopt in
+    let hint = hint ~forbid_this ~allow_typedef ~allow_wildcard ~allow_like in
     match x with
     | Aast.Htuple hl ->
       N.Htuple
@@ -825,7 +823,8 @@ module Make (GetLocals : GetLocals) = struct
       (* void/noreturn are permitted for Typing.option_return_only_typehint *)
       N.Hoption (hint ~allow_retonly env h)
     | Aast.Hlike h ->
-      if not like_types_enabled then Errors.experimental_feature p "like-types";
+      if not (allow_like || like_type_hints_enabled) then
+        Errors.experimental_feature p "like-types";
       N.Hlike (hint ~allow_retonly env h)
     | Aast.Hsoft h ->
       let h = hint ~allow_retonly env h in
@@ -908,14 +907,7 @@ module Make (GetLocals : GetLocals) = struct
             | N.Hthis
             | N.Happly _ ->
               h
-            (* Pocket Universes: we want to be able to write `FieldName::Type`
-               in various locations (class, pu enum definitions, function
-               signatures), not just in `where` clauses.
-               This syntax is not (yet) allowed in Hack so
-               I guard its handling behind the experimental PU flag.
-            *)
-            | N.Habstr _ when in_where_clause && not pu_enabled -> h
-            | N.Habstr _ when pu_enabled -> h
+            | N.Habstr _ when in_where_clause -> h
             | _ ->
               Errors.invalid_type_access_root root;
               N.Herr
@@ -1713,6 +1705,7 @@ module Make (GetLocals : GetLocals) = struct
         List.iter l ~f:(check_afield_constant_expr env)
       else
         Errors.illegal_constant p
+    | Aast.As (e, (_, Aast.Hlike _), _) -> check_constant_expr env e
     | _ -> Errors.illegal_constant pos
 
   and check_afield_constant_expr env afield =
@@ -2739,8 +2732,10 @@ module Make (GetLocals : GetLocals) = struct
             (e2opt, e3))
       in
       N.Eif (e1, e2opt, e3)
-    | Aast.Is (e, h) -> N.Is (expr env e, hint ~allow_wildcard:true env h)
-    | Aast.As (e, h, b) -> N.As (expr env e, hint ~allow_wildcard:true env h, b)
+    | Aast.Is (e, h) ->
+      N.Is (expr env e, hint ~allow_wildcard:true ~allow_like:true env h)
+    | Aast.As (e, h, b) ->
+      N.As (expr env e, hint ~allow_wildcard:true ~allow_like:true env h, b)
     | Aast.New ((_, Aast.CIexpr (p, Aast.Id x)), tal, el, uel, _) ->
       N.New
         (make_class_id env x, targl env p tal, exprl env el, exprl env uel, p)

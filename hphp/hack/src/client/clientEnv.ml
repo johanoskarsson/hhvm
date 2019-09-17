@@ -47,6 +47,7 @@ type client_mode =
   | MODE_REWRITE_LAMBDA_PARAMETERS of string list
   | MODE_REWRITE_RETURN_TYPE of string list
   | MODE_REWRITE_PARAMETER_TYPES of string list
+  | MODE_REWRITE_TYPE_PARAMS_TYPE of string list
   | MODE_RETRIEVE_CHECKPOINT of string
   | MODE_SAVE_NAMING of string
   | MODE_SAVE_STATE of string
@@ -81,6 +82,7 @@ type client_check_env = {
   output_json: bool;
   prechecked: bool option;
   profile_log: bool;
+  remote: bool;
   replace_state_after_saving: bool;
   root: Path.t;
   sort_results: bool;
@@ -129,6 +131,7 @@ let mode_to_string = function
   | MODE_REWRITE_LAMBDA_PARAMETERS _ -> "MODE_REWRITE_LAMBDA_PARAMETERS"
   | MODE_REWRITE_RETURN_TYPE _ -> "MODE_REWRITE_RETURN_TYPE"
   | MODE_REWRITE_PARAMETER_TYPES _ -> "MODE_REWRITE_PARAMETER_TYPES"
+  | MODE_REWRITE_TYPE_PARAMS_TYPE _ -> "MODE_REWRITE_TYPE_PARAMS_TYPE"
   | MODE_RETRIEVE_CHECKPOINT _ -> "MODE_RETRIEVE_CHECKPOINT"
   | MODE_SAVE_NAMING _ -> "MODE_SAVE_NAMING"
   | MODE_SAVE_STATE _ -> "MODE_SAVE_STATE"

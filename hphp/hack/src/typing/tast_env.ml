@@ -33,11 +33,21 @@ exception Not_in_class
 
 let print_ty = Typing_print.full_strip_ns
 
+let print_decl_ty = Typing_print.full_strip_ns
+
 let print_error_ty = Typing_print.error
 
-let print_ty_with_identity = Typing_print.full_with_identity
+let print_ty_with_identity env phase_ty sym_occurrence sym_definition =
+  match phase_ty with
+  | Typing_defs.DeclTy ty ->
+    let (env, ty) = Typing_phase.localize_with_self env ty in
+    Typing_print.full_with_identity env ty sym_occurrence sym_definition
+  | Typing_defs.LoclTy ty ->
+    Typing_print.full_with_identity env ty sym_occurrence sym_definition
 
 let ty_to_json = Typing_print.to_json
+
+let decl_ty_to_json = Typing_print.to_json
 
 let json_to_locl_ty = Typing_print.json_to_locl_ty
 
@@ -100,7 +110,7 @@ let fold_unresolved = Typing_utils.fold_unresolved
 
 let flatten_unresolved = Typing_utils.flatten_unresolved
 
-let push_option_out = Typing_solver.push_option_out Pos.none
+let non_null = Typing_solver.non_null
 
 let get_concrete_supertypes = Typing_utils.get_concrete_supertypes
 
@@ -115,8 +125,6 @@ let hint_to_ty env = Decl_hint.hint env.Typing_env_types.decl_env
 let localize env ety_env = Typing_phase.localize ~ety_env env
 
 let localize_with_self = Typing_phase.localize_with_self
-
-let localize_with_dty_validator = Typing_phase.localize_with_dty_validator
 
 let get_upper_bounds = Typing_env.get_upper_bounds
 
@@ -232,6 +240,8 @@ let tast_env_as_typing_env env = env
 let is_xhp_child = Typing_xhp.is_xhp_child
 
 let get_enum = Typing_env.get_enum
+
+let get_typedef = Typing_env.get_typedef
 
 let is_enum = Typing_env.is_enum
 

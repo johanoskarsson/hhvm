@@ -121,7 +121,6 @@ and get_spread_attributes env pos onto_xhp cty =
         this_ty = xhp_ty;
         substs = Subst.make (Cls.tparams xhp_info) tparams;
         from_class = None;
-        validate_dty = None;
       }
     in
     List.map_env
@@ -150,4 +149,4 @@ let is_xhp_child env pos ty =
   Typing_solver.is_sub_type
     env
     ty
-    (MakeType.nullable r (r, Tunion [ty_child; ty_traversable]))
+    (MakeType.nullable_locl r (r, Tunion [ty_child; ty_traversable]))

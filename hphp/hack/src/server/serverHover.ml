@@ -39,9 +39,11 @@ let make_hover_return_type env_and_ty occurrence =
     Typing_defs.(
       match (occurrence, env_and_ty) with
       | ({ type_ = Function | Method _; _ }, Some (env, (_, Tfun ft))) ->
-        [ Printf.sprintf
+        [
+          Printf.sprintf
             "Return type: `%s`"
-            (Tast_env.print_ty env ft.ft_ret.et_type) ]
+            (Tast_env.print_ty env ft.ft_ret.et_type);
+        ]
       | _ -> []))
 
 let make_hover_full_name env_and_ty occurrence def_opt =
@@ -73,21 +75,32 @@ let make_hover_info env_and_ty file (occurrence, def_opt) =
               fst (Decl_provider.Class.construct c)
               >>| fun elt ->
               let ty = Lazy.force_val elt.ce_type in
-              Tast_env.print_ty_with_identity env ty occurrence def_opt)
+              Tast_env.print_ty_with_identity
+                env
+                (DeclTy ty)
+                occurrence
+                def_opt)
           in
           begin
             match snippet_opt with
             | Some s -> s
-            | None -> Tast_env.print_ty_with_identity env ty occurrence def_opt
+            | None ->
+              Tast_env.print_ty_with_identity
+                env
+                (LoclTy ty)
+                occurrence
+                def_opt
           end
         | (occurrence, Some (env, ty)) ->
-          Tast_env.print_ty_with_identity env ty occurrence def_opt
+          Tast_env.print_ty_with_identity env (LoclTy ty) occurrence def_opt
       in
       let addendum =
         List.concat
-          [ make_hover_doc_block file occurrence def_opt;
+          [
+            make_hover_doc_block file occurrence def_opt;
             make_hover_return_type env_and_ty occurrence;
-            make_hover_full_name env_and_ty occurrence def_opt ]
+            make_hover_full_name env_and_ty occurrence def_opt;
+          ]
       in
       HoverService.
         { snippet; addendum; pos = Some occurrence.SymbolOccurrence.pos }))

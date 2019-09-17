@@ -141,7 +141,7 @@ let strip_ns_prefix reference name =
 
 let list_items items = String.concat items ~sep:", "
 
-let tparam_name (tp : Typing_defs.decl Typing_defs.tparam) = snd tp.tp_name
+let tparam_name (tp : Typing_defs.decl_tparam) = snd tp.tp_name
 
 let function_make_default = "extract_standalone_make_default"
 
@@ -833,7 +833,7 @@ let rec add_dep deps ?cls:(this_cls = None) ty : unit =
   let add_ dep = if not (is_builtin_dep dep) then HashSet.add deps dep in
   let visitor =
     object (this)
-      inherit [unit] Type_visitor.type_visitor
+      inherit [unit] Type_visitor.decl_type_visitor
 
       method! on_tapply _ _ (_, name) tyl =
         add_ (Typing_deps.Dep.Class name);

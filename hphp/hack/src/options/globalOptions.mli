@@ -80,6 +80,10 @@ type t = {
   (* If set, defers class declarations after N lazy declarations; if not set,
     always lazily declares classes not already in cache. *)
   tco_defer_class_declaration_threshold: int option;
+  (* If set, prevents type checking of files from being deferred more than
+    the number of times greater than or equal to the threshold. If not set,
+    defers class declarations indefinitely. *)
+  tco_max_times_to_defer_type_checking: int option;
   (* Whether the Eden prefetch hook should be invoked *)
   tco_prefetch_deferred_files: bool;
   (* If set, distributes type checking to remote workers if the number of files to
@@ -204,8 +208,10 @@ type t = {
       should be logged. It's only in effect if we're profiling type checking to begin
       with. To profile, pass --profile-log to hh_server. *)
   profile_type_check_duration_threshold: float;
-  (* Enables deeper like types features *)
-  tco_like_types: bool;
+  (* Enables like type hints *)
+  tco_like_type_hints: bool;
+  (* Enables like casts *)
+  tco_like_casts: bool;
   (* This tells the type checker to rewrite unenforceable as like types
      i.e. vec<string> => vec<~string> *)
   tco_pessimize_types: bool;
@@ -215,6 +221,8 @@ type t = {
   (* Enables coercion from dynamic to enforceable types
      i.e. dynamic ~> int *)
   tco_coercion_from_dynamic: bool;
+  (* Enables coercion from union types *)
+  tco_coercion_from_union: bool;
   (* Enables complex coercion interactions that involve like types *)
   tco_complex_coercion: bool;
   (* Treat partially abstract typeconsts like concrete typeconsts, disable overriding type *)
@@ -281,6 +289,7 @@ val make :
   ?tco_migration_flags:SSet.t ->
   ?tco_dynamic_view:bool ->
   ?tco_defer_class_declaration_threshold:int ->
+  ?tco_max_times_to_defer_type_checking:int ->
   ?tco_prefetch_deferred_files:bool ->
   ?tco_remote_type_check_threshold:int ->
   ?tco_remote_type_check:bool ->
@@ -313,10 +322,12 @@ val make :
   ?tco_shallow_class_decl:bool ->
   ?po_rust_parser_errors:bool ->
   ?profile_type_check_duration_threshold:float ->
-  ?tco_like_types:bool ->
+  ?tco_like_type_hints:bool ->
+  ?tco_like_casts:bool ->
   ?tco_pessimize_types:bool ->
   ?tco_simple_pessimize:float ->
   ?tco_coercion_from_dynamic:bool ->
+  ?tco_coercion_from_union:bool ->
   ?tco_complex_coercion:bool ->
   ?tco_disable_partially_abstract_typeconsts:bool ->
   ?error_codes_treated_strictly:ISet.t ->
@@ -353,6 +364,8 @@ val tco_migration_flag_enabled : t -> SSet.elt -> bool
 val tco_dynamic_view : t -> bool
 
 val tco_defer_class_declaration_threshold : t -> int option
+
+val tco_max_times_to_defer_type_checking : t -> int option
 
 val tco_prefetch_deferred_files : t -> bool
 
@@ -438,8 +451,6 @@ val tco_experimental_type_param_shadowing : string
 
 val tco_experimental_trait_method_redeclarations : string
 
-val tco_experimental_pocket_universes : string
-
 val tco_experimental_abstract_type_const_with_default : string
 
 val tco_experimental_all : SSet.t
@@ -454,8 +465,6 @@ val log_levels : t -> int SMap.t
 
 val po_disable_lval_as_an_expression : t -> bool
 
-val setup_pocket_universes : t -> bool -> t
-
 val tco_typecheck_xhp_cvars : t -> bool
 
 val tco_ignore_collection_expr_type_arguments : t -> bool
@@ -466,13 +475,17 @@ val po_rust_parser_errors : t -> bool
 
 val profile_type_check_duration_threshold : t -> float
 
-val tco_like_types : t -> bool
+val tco_like_type_hints : t -> bool
+
+val tco_like_casts : t -> bool
 
 val tco_pessimize_types : t -> bool
 
 val tco_simple_pessimize : t -> float
 
 val tco_coercion_from_dynamic : t -> bool
+
+val tco_coercion_from_union : t -> bool
 
 val tco_complex_coercion : t -> bool
 

@@ -1401,12 +1401,14 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
           (* __NonRx attribute is found with single string argument.
       This is ok for declarations for not allowed for lambdas *)
           | Some
-              [ {
+              [
+                {
                   syntax =
                     LiteralExpression
                       { literal_expression = { syntax = Token token; _ }; _ };
                   _;
-                } ]
+                };
+              ]
             when Token.kind token = TokenKind.DoubleQuotedStringLiteral
                  || Token.kind token = TokenKind.SingleQuotedStringLiteral ->
             if is_decl then
@@ -2563,6 +2565,9 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
     let function_call_argument_errors ~in_constructor_call node errors =
       let result =
         match syntax node with
+        | VariableExpression { variable_expression }
+          when text variable_expression = SN.Superglobals.globals ->
+          Some SyntaxError.globals_without_subscript
         | PrefixUnaryExpression
             {
               prefix_unary_operator = { syntax = Token token; _ };
@@ -2700,16 +2705,19 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
         | PipeVariableExpression _ -> []
         | SubscriptExpression { subscript_index = { syntax = Missing; _ }; _ }
           ->
-          [ make_error_from_node
+          [
+            make_error_from_node
               node
-              SyntaxError.instanceof_missing_subscript_index ]
+              SyntaxError.instanceof_missing_subscript_index;
+          ]
         | SubscriptExpression { subscript_receiver; _ } ->
           helper subscript_receiver ~inside_scope_resolution
         | MemberSelectionExpression { member_object; _ } ->
           if inside_scope_resolution then
-            [ make_error_from_node
+            [
+              make_error_from_node
                 node
-                SyntaxError.instanceof_memberselection_inside_scoperesolution
+                SyntaxError.instanceof_memberselection_inside_scoperesolution;
             ]
           else
             helper member_object ~inside_scope_resolution
@@ -2731,9 +2739,11 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
           when Token.kind name = TokenKind.Variable ->
           helper scope_resolution_qualifier ~inside_scope_resolution:true
         | ScopeResolutionExpression _ ->
-          [ make_error_from_node
+          [
+            make_error_from_node
               node
-              SyntaxError.instanceof_invalid_scope_resolution ]
+              SyntaxError.instanceof_invalid_scope_resolution;
+          ]
         | _ ->
           let error_msg =
             SyntaxError.instanceof_new_unknown_node
@@ -2967,9 +2977,11 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
         (* Dependent awaits are not allowed currently *)
         | PrefixUnaryExpression { prefix_unary_operator = op; _ }
           when token_kind op = Some TokenKind.Await ->
-          [ make_error_from_node
+          [
+            make_error_from_node
               await_node
-              SyntaxError.invalid_await_position_dependent ]
+              SyntaxError.invalid_await_position_dependent;
+          ]
         (* Unary based expressions have their own custom fanout *)
         | PrefixUnaryExpression { prefix_unary_operator = operator; _ }
         | PostfixUnaryExpression { postfix_unary_operator = operator; _ }
@@ -3143,9 +3155,11 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
               then
                 let node = ctr_call.constructor_call_type in
                 let constructor_name = text ctr_call.constructor_call_type in
-                [ make_error_from_node
+                [
+                  make_error_from_node
                     node
-                    (SyntaxError.error2038 constructor_name) ]
+                    (SyntaxError.error2038 constructor_name);
+                ]
               else
                 []
           else
@@ -4682,6 +4696,13 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
         when is_good_scope_resolution_qualifier scope_resolution_qualifier
              && is_good_scope_resolution_name scope_resolution_name ->
         errors
+      | AsExpression
+          {
+            as_left_operand = e;
+            as_right_operand = { syntax = LikeTypeSpecifier _; _ };
+            _;
+          } ->
+        check_constant_expression errors e
       | _ ->
         make_error_from_node node SyntaxError.invalid_constant_initializer
         :: errors
@@ -5035,7 +5056,7 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
       let append_errors node errors error =
         make_error_from_node node error :: errors
       in
-      let rec check_lvalue ?(allow_reassign_this = false) loperand errors :
+      let rec check_lvalue ?(allow_reassign = false) loperand errors :
           SyntaxError.t list =
         let err = append_errors loperand errors in
         match syntax loperand with
@@ -5047,11 +5068,14 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
         | MemberSelectionExpression { member_name; _ }
           when token_kind member_name = Some TokenKind.XHPClassName ->
           err (SyntaxError.not_allowed_in_write "->: operator")
+        | VariableExpression _ when allow_reassign -> errors
         | VariableExpression { variable_expression }
-          when (not allow_reassign_this)
-               && String.lowercase (text variable_expression)
-                  = SN.SpecialIdents.this ->
+          when String.lowercase (text variable_expression)
+               = SN.SpecialIdents.this ->
           err SyntaxError.reassign_this
+        | VariableExpression { variable_expression }
+          when text variable_expression = SN.Superglobals.globals ->
+          err (SyntaxError.not_allowed_in_write "$GLOBALS")
         | DecoratedExpression { decorated_expression_decorator = op; _ }
           when token_kind op = Some TokenKind.Clone ->
           err (SyntaxError.not_allowed_in_write "Clone")
@@ -5072,9 +5096,9 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
           err (SyntaxError.not_allowed_in_write "Inout")
         | ParenthesizedExpression
             { parenthesized_expression_expression = e; _ } ->
-          check_lvalue ~allow_reassign_this e errors
+          check_lvalue ~allow_reassign e errors
         | SubscriptExpression { subscript_receiver = e; _ } ->
-          check_lvalue ~allow_reassign_this:true e errors
+          check_lvalue ~allow_reassign:true e errors
         | LambdaExpression _
         | AnonymousFunction _
         | AwaitableCreationExpression _
@@ -5122,6 +5146,9 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
       in
       let check_rvalue roperand errors : SyntaxError.t list =
         match syntax roperand with
+        | VariableExpression { variable_expression }
+          when text variable_expression = SN.Superglobals.globals ->
+          append_errors roperand errors SyntaxError.globals_without_subscript
         | PrefixUnaryExpression { prefix_unary_operator = op; _ }
           when token_kind op = Some TokenKind.Ampersand ->
           append_errors roperand errors SyntaxError.references_not_allowed
@@ -5133,14 +5160,14 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
       | PostfixUnaryExpression
           { postfix_unary_operator = op; postfix_unary_operand = loperand }
         when does_unop_create_write (token_kind op) ->
-        check_lvalue ~allow_reassign_this:true loperand errors
+        check_lvalue ~allow_reassign:true loperand errors
       | DecoratedExpression
           {
             decorated_expression_decorator = op;
             decorated_expression_expression = loperand;
           }
         when does_decorator_create_write (token_kind op) ->
-        check_lvalue ~allow_reassign_this:true loperand errors
+        check_lvalue ~allow_reassign:true loperand errors
       | BinaryExpression
           {
             binary_left_operand = loperand;
@@ -5150,8 +5177,9 @@ module WithSyntax (Syntax : Syntax_sig.Syntax_S) = struct
         when does_binop_create_write_on_left (token_kind op) ->
         let errors = check_lvalue loperand errors in
         check_rvalue roperand errors
-      | ForeachStatement { foreach_key = k; foreach_value = v; _ } ->
-        check_lvalue k @@ check_lvalue v errors
+      | ForeachStatement
+          { foreach_key = k; foreach_value = v; foreach_collection = fc; _ } ->
+        check_rvalue fc @@ check_lvalue k @@ check_lvalue v errors
       | _ -> errors
 
     let dynamic_method_call_errors node errors =

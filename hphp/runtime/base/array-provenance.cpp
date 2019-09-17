@@ -157,7 +157,7 @@ folly::Optional<Tag> getTag(const APCArray* a) {
 template<Mode mode>
 void setTag(ArrayData* ad, Tag tag) {
   if (setTagImpl<mode>(ad, tag)) {
-    ad->markHasProvenanceData();
+    ad->setHasProvenanceData(true);
   }
 }
 template<Mode mode>
@@ -170,7 +170,8 @@ template void setTag<Mode::Emplace>(ArrayData*, Tag);
 template void setTag<Mode::Insert>(const APCArray*, Tag);
 template void setTag<Mode::Emplace>(const APCArray*, Tag);
 
-void clearTag(const ArrayData* ad) {
+void clearTag(ArrayData* ad) {
+  ad->setHasProvenanceData(false);
   clearTagImpl(ad);
 }
 void clearTag(const APCArray* a) {
@@ -199,7 +200,10 @@ void tagTVImpl(TypedValue& tv, folly::Optional<Tag> tag) {
 
     tvMove(tmp, tv);
   }
-  setTag(ad, *tag);
+  // the copy() above may have tagged this array with the PC data
+  // so we can't assert that it's not there--this is safe since
+  // we bail out above if the input array was already tagged
+  setTag<Mode::Emplace>(ad, *tag);
 }
 
 }
@@ -219,6 +223,7 @@ namespace {
 template<typename AD, typename Copy>
 typename maybe_const<AD, ArrayData, AD*>::type
 makeEmptyImpl(AD* base, folly::Optional<Tag> tag, Copy&& copy) {
+  assertx(RuntimeOption::EvalArrayProvenance);
   assertx(base->empty());
   assertx(base->isStatic());
   assertx(arrayWantsTag(base));

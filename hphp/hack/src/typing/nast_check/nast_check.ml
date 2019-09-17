@@ -6,7 +6,8 @@ open Core_kernel
 
 let visitor =
   Nast_visitor.iter_with
-    [ Const_prohibited_check.handler;
+    [
+      Const_prohibited_check.handler;
       Prop_modifier_prohibited_check.handler;
       Mutability_check.handler;
       Inout_check.handler;
@@ -19,7 +20,9 @@ let visitor =
       Control_context_check.handler;
       Pocket_universes_check.handler;
       Read_from_append_check.handler;
-      Dynamically_callable_attr_check.handler ]
+      Dynamically_callable_attr_check.handler;
+      Nast_switch_check.handler;
+    ]
 
 let program = visitor#go
 

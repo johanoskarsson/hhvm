@@ -18,6 +18,7 @@
 #define incl_HPHP_RUNTIME_OPTION_H_
 
 #include <folly/dynamic.h>
+#include <folly/experimental/io/FsUtil.h>
 
 #include <unordered_map>
 #include <algorithm>
@@ -85,18 +86,10 @@ struct RepoOptions {
   H(bool,           AbstractStaticProps,            false)            \
   H(bool,           DisableUnsetClassConst,         false)            \
   E(bool,           CreateInOutWrapperFunctions,    true)             \
-  E(std::string,    HHJSAdditionalTransform,        "")               \
-  E(bool,           HHJSNoBabel,                    false)            \
-  E(bool,           HHJSUniqueFilenames,            true)             \
-  E(bool,           HHJSSetLocs,                    false)            \
-  E(std::string,    HHJSNodeModules,                "")               \
   E(bool,           EmitFuncPointers,               true)             \
   E(bool,           EmitInstMethPointers,           EmitFuncPointers) \
   /**/
 
-#define PARSERFLAGSNOCACHEKEY() \
-  E(std::string,    HHJSBabelTransform,                               \
-                                       hhjsBabelTransformDefault())   \
   /**/
 
 #define AUTOLOADFLAGS() \
@@ -130,7 +123,6 @@ private:
 #define H(t, n, ...) t n;
 #define E(t, n, ...) t n;
 PARSERFLAGS()
-PARSERFLAGSNOCACHEKEY()
 AUTOLOADFLAGS()
 #undef N
 #undef P
@@ -175,6 +167,18 @@ struct RuntimeOption {
     std::string& xboxPassword,
     std::set<std::string>& xboxPasswords
   );
+
+  static folly::Optional<folly::fs::path> GetHomePath(
+    const folly::StringPiece user);
+
+  /**
+   * Find a config file corresponding to the given user and parse its
+   * settings into the given ini and hdf objects.
+   *
+   * Return true on success and false on failure.
+   */
+  static bool ReadPerUserSettings(const folly::fs::path& confFileName,
+                                  IniSettingMap& ini, Hdf& config);
 
   static std::string getTraceOutputFile();
 
@@ -447,6 +451,7 @@ struct RuntimeOption {
   static std::string AdminServerIP;
   static int AdminServerPort;
   static int AdminThreadCount;
+  static bool AdminServerStatsNeedPassword;
   static std::string AdminPassword;
   static std::set<std::string> AdminPasswords;
   static std::set<std::string> HashedAdminPasswords;
@@ -656,12 +661,11 @@ struct RuntimeOption {
   F(bool, FatalOnParserOptionMismatch, true)                            \
   F(bool, WarnOnSkipFrameLookup,       true)                            \
   /*                                                                    \
-   * -1 - No checks on code coverage                                    \
    *  0 - Code coverage cannot be enabled through request param         \
    *  1 - Code coverage can be enabled through request param            \
    *  2 - Code coverage enabled                                         \
    */                                                                   \
-  F(int32_t, EnableCodeCoverage,       -1)                              \
+  F(uint32_t, EnableCodeCoverage,      0)                               \
   /* Whether to use the embedded hackc binary */                        \
   F(bool, HackCompilerUseEmbedded,     facebook)                        \
   /* Whether to trust existing versions of the extracted compiler */    \
@@ -697,8 +701,6 @@ struct RuntimeOption {
   F(bool, EmitSwitch,                  true)                            \
   F(bool, LogThreadCreateBacktraces,   false)                           \
   F(bool, FailJitPrologs,              false)                           \
-  F(bool, EnableHHJS,                  false)                           \
-  F(bool, DumpHHJS,                    false)                           \
   F(bool, UseHHBBC,                    !getenv("HHVM_DISABLE_HHBBC"))   \
   F(bool, EnablePerRepoOptions,        true)                            \
   F(bool, CachePerRepoOptionsPath,     true)                            \
@@ -1018,6 +1020,7 @@ struct RuntimeOption {
   F(bool, HackArrCompatCheckFalseyPromote, false)                       \
   F(bool, HackArrCompatCheckEmptyStringPromote, false)                  \
   F(bool, HackArrCompatCheckCompare, false)                             \
+  F(bool, HackArrCompatCheckCompareNonAnyArray, false)                  \
   F(bool, HackArrCompatCheckArrayPlus, false)                           \
   F(bool, HackArrCompatCheckArrayKeyCast, false)                        \
   F(bool, HackArrCompatCheckNullHackArrayKey, false)                    \
@@ -1054,9 +1057,6 @@ struct RuntimeOption {
   F(bool, ArrayProvenance, false)                                       \
   /* Tag _all_ empty arrays we create at runtime. */                    \
   F(bool, ArrayProvenanceEmpty, false)                                  \
-  /* Enable experimental array provenance opportunistic creation of     \
-   * tagged empty arrays */                                             \
-  F(bool, ArrayProvenancePromoteEmptyArrays, false)                      \
   /* Enable logging the source of vecs/dicts whose vec/dict-ness is     \
    * observed, e.g. through serialization */                            \
   F(bool, LogArrayProvenance, false)                                    \

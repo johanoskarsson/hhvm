@@ -99,7 +99,7 @@ let setup_server ?custom_config ?(hhi_files = []) () =
     SymbolIndex.initialize
       ~globalrev_opt:None
       ~namespace_map:[]
-      ~provider_name:"TrieIndex"
+      ~provider_name:"LocalIndex"
       ~quiet:true
       ~savedstate_file_opt:None
       ~workers:None
@@ -332,6 +332,16 @@ let edit_file env name contents =
       }
   in
   assert_responded "Expected EDIT_FILE to be processed" loop_output;
+  (env, loop_output)
+
+let save_file env name contents =
+  let (env, loop_output) =
+    run_loop_once
+      env
+      { default_loop_input with disk_changes = [(name, contents)] }
+  in
+  if not loop_output.did_read_disk_changes then
+    fail "Expected the server to process disk updates";
   (env, loop_output)
 
 let close_file ?(ignore_response = false) env name =
@@ -708,9 +718,11 @@ let assert_coverage_levels loop_output expected =
     | _ -> fail "Expected coverage levels response"
   in
   let strings_of_stats =
-    [ "checked: " ^ string_of_int counts.checked;
+    [
+      "checked: " ^ string_of_int counts.checked;
       "partial: " ^ string_of_int counts.partial;
-      "unchecked: " ^ string_of_int counts.unchecked ]
+      "unchecked: " ^ string_of_int counts.unchecked;
+    ]
   in
   let results_as_string =
     List.map results ~f:coverage_levels_to_str_helper

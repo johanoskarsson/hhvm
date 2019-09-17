@@ -15,7 +15,7 @@ module TUtils = Typing_utils
 module MakeType = Typing_make_type
 
 (* The regular strip_awaitable function depends on expand_type and only works on locl types *)
-let strip_awaitable_decl fun_kind env (ty : decl ty) =
+let strip_awaitable_decl fun_kind env (ty : decl_ty) =
   if fun_kind <> Ast_defs.FAsync then
     ty
   else
@@ -96,7 +96,7 @@ let wrap_awaitable env p rty =
   | Ast_defs.FAsync ->
     MakeType.awaitable (Reason.Rret_fun_kind (p, Ast_defs.FAsync)) rty
 
-let make_return_type localize env (ty : decl ty) =
+let make_return_type localize env (ty : decl_ty) =
   match (Env.get_fn_kind env, ty) with
   | (Ast_defs.FAsync, (r, Tapply ((_, class_name), [inner_ty])))
     when class_name = Naming_special_names.Classes.cAwaitable ->
@@ -129,6 +129,8 @@ let force_awaitable env p ty =
 
 let make_default_return ~is_method ~is_infer_missing_on env name =
   let pos = fst name in
+  let reason = Reason.Rwitness pos in
+  let default = (reason, Typing_utils.tany env) in
   if is_method && snd name = SN.Members.__construct then
     (env, MakeType.void (Reason.Rwitness pos))
   else if is_infer_missing_on then
@@ -136,22 +138,11 @@ let make_default_return ~is_method ~is_infer_missing_on env name =
         returned type. Later on it will be reused to get back the inferred type
         of the function. *)
     let (env, ty) =
-      Env.fresh_type_reason
-        ~variance:Ast_defs.Covariant
-        env
-        (Reason.Rwitness pos)
+      Env.fresh_type_reason ~variance:Ast_defs.Covariant env reason
     in
     (env, wrap_awaitable env pos ty)
   else
-    (env, (Reason.Rwitness pos, Typing_utils.tany env))
-
-let suggest_return env p ty is_code_error =
-  let ty = Typing_expand.fully_expand env ty in
-  match Typing_print.suggest ty with
-  | "..." when is_code_error 4030 -> Errors.expecting_return_type_hint p
-  | ty when is_code_error 4031 ->
-    Errors.expecting_return_type_hint_suggest p ty
-  | _ -> ()
+    (env, default)
 
 let async_suggest_return fkind hint pos =
   let is_async = Ast_defs.FAsync = fkind in

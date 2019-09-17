@@ -13,14 +13,16 @@ type t = env [@@deriving show]
 
 exception Not_in_class
 
-val print_ty : env -> 'a Typing_defs.ty -> string
+val print_ty : env -> Typing_defs.locl_ty -> string
 (** Return a string representation of the given type using Hack-like syntax. *)
 
-val print_error_ty : env -> Typing_defs.locl Typing_defs.ty -> string
+val print_decl_ty : env -> Typing_defs.decl_ty -> string
+
+val print_error_ty : env -> Typing_defs.locl_ty -> string
 
 val print_ty_with_identity :
   env ->
-  'a Typing_defs.ty ->
+  Typing_defs.phase_ty ->
   'b SymbolOccurrence.t ->
   'b SymbolDefinition.t option ->
   string
@@ -29,13 +31,15 @@ val print_ty_with_identity :
     information from the {!SymbolOccurrence.t} and (if provided)
     {!SymbolDefinition.t}. *)
 
-val ty_to_json : env -> 'a Typing_defs.ty -> Hh_json.json
+val ty_to_json : env -> Typing_defs.locl_ty -> Hh_json.json
 (** Return a JSON representation of the given type. *)
+
+val decl_ty_to_json : env -> Typing_defs.decl_ty -> Hh_json.json
 
 val json_to_locl_ty :
   ?keytrace:Hh_json.Access.keytrace ->
   Hh_json.json ->
-  (Typing_defs.locl Typing_defs.ty, Typing_defs.deserialization_error) result
+  (Typing_defs.locl_ty, Typing_defs.deserialization_error) result
 (** Convert a JSON representation of a type back into a locl-phase type. *)
 
 val get_self_id_exn : env -> string
@@ -100,7 +104,7 @@ val fold_unresolved : env -> Tast.ty -> env * Tast.ty
 val flatten_unresolved : env -> Tast.ty -> Tast.ty list -> env * Tast.ty list
 (** Flatten nested unresolved unions, turning ((A | B) | C) to (A | B | C). *)
 
-val push_option_out : env -> Tast.ty -> env * Tast.ty
+val non_null : env -> Pos.t -> Tast.ty -> env * Tast.ty
 (** Strip away all Toptions that we possibly can in a type, expanding type
     variables along the way, turning ?T -> T. *)
 
@@ -133,34 +137,22 @@ val assert_nullable : Pos.t -> Ast_defs.bop -> env -> Tast.ty -> unit
     comparsion to null is nullable (otherwise it is known to always
     return true or false). *)
 
-val hint_to_ty : env -> Aast.hint -> Typing_defs.decl Typing_defs.ty
+val hint_to_ty : env -> Aast.hint -> Typing_defs.decl_ty
 (** Return the declaration-phase type the given hint represents. *)
 
 val localize :
-  env ->
-  Typing_defs.expand_env ->
-  Typing_defs.decl Typing_defs.ty ->
-  env * Tast.ty
+  env -> Typing_defs.expand_env -> Typing_defs.decl_ty -> env * Tast.ty
 
-val localize_with_self :
-  env -> Typing_defs.decl Typing_defs.ty -> env * Tast.ty
-(** Transforms a declaration phase type ({!Typing_defs.decl Typing_defs.ty})
-    into a localized type ({!Typing_defs.locl Typing_defs.ty} = {!Tast.ty}).
+val localize_with_self : env -> Typing_defs.decl_ty -> env * Tast.ty
+(** Transforms a declaration phase type ({!Typing_defs.decl_ty})
+    into a localized type ({!Typing_defs.locl_ty} = {!Tast.ty}).
     Performs no substitutions of generics and initializes the late static bound
     type ({!Typing_defs.Tthis}) to the current class type (the type returned by
     {!get_self}).
 
     This is mostly provided as legacy support for {!AutocompleteService}, and
-    should not be considered a general mechanism for transforming a {decl ty} to
+    should not be considered a general mechanism for transforming a {decl_ty} to
     a {!Tast.ty}. *)
-
-val localize_with_dty_validator :
-  env ->
-  Typing_defs.decl Typing_defs.ty ->
-  (Typing_defs.expand_env -> Typing_defs.decl Typing_defs.ty -> unit) ->
-  env * Tast.ty
-(** Identical to localize_with_self, but also takes a validator that is applied
-    to every expanded decl type on the way to becoming a locl type. *)
 
 val get_upper_bounds : env -> string -> Type_parameter_env.tparam_bounds
 (** Get the upper bounds of the type parameter with the given name. *)
@@ -267,6 +259,8 @@ val is_xhp_child : env -> Pos.t -> Tast.ty -> bool
 (** Verify that an XHP body expression is legal. *)
 
 val get_enum : env -> string -> Decl_provider.class_decl option
+
+val get_typedef : env -> string -> Decl_provider.typedef_decl option
 
 val is_enum : env -> string -> bool
 

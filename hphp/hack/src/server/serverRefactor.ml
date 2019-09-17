@@ -46,6 +46,12 @@ let get_parameter_types_rewrite_patches env files =
         env.tcopt
         (Relative_path.from_root file))
 
+let get_type_params_type_rewrite_patches env files =
+  List.concat_map files (fun file ->
+      ServerRewriteTypeParamsType.get_patches
+        env.tcopt
+        (Relative_path.from_root file))
+
 let find_def_filename current_filename definition =
   SymbolDefinition.(
     if Pos.filename definition.pos = ServerIdeUtils.path then
@@ -241,7 +247,8 @@ let get_call_signature_for_wrap (func_decl : Full_fidelity_positioned_syntax.t)
                           {
                             syntax =
                               SyntaxList
-                                [ {
+                                [
+                                  {
                                     syntax =
                                       ListItem
                                         {
@@ -258,7 +265,8 @@ let get_call_signature_for_wrap (func_decl : Full_fidelity_positioned_syntax.t)
                                           _;
                                         };
                                     _;
-                                  } ];
+                                  };
+                                ];
                             _;
                           };
                         _;

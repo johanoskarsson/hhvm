@@ -17,7 +17,9 @@ let set_fuzzy_search_enabled x = HackSearchService.fuzzy := x
 
 let init_needs_search_updates ~(provider_name : string) : bool =
   match SearchUtils.provider_of_string provider_name with
-  | TrieIndex -> true
+  | LocalIndex
+  | TrieIndex ->
+    true
   | _ -> false
 
 (* Set the currently selected search provider *)
@@ -140,12 +142,14 @@ let find_matching_symbols
    * Let's capture it and avoid doing unnecessary work.
    *)
   if query_text = "this_is_just_to_check_liveness_of_hh_server" then
-    [ {
+    [
+      {
         si_name = "Yes_hh_server_is_alive";
         si_kind = SI_Unknown;
         si_filehash = 0L;
         si_fullname = "";
-      } ]
+      };
+    ]
   else
     (* Potential namespace matches always show up first *)
     let namespace_results =
@@ -204,7 +208,7 @@ let find_matching_symbols
     let all_results = List.append local_results global_results in
     let dedup_results =
       List.dedup_and_sort
-        ~compare:(fun a b -> String.compare a.si_name b.si_name)
+        ~compare:(fun a b -> String.compare b.si_name a.si_name)
         all_results
     in
     (* Strip namespace already typed from the results *)

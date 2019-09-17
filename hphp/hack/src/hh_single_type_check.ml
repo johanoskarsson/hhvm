@@ -71,21 +71,23 @@ let hhi_builtins = Hhi.get_raw_hhi_contents ()
 (* All of the stuff that hh_single_type_check relies on is sadly not contained
  * in the hhi library, so we include a very small number of magic builtins *)
 let magic_builtins =
-  [| ( "hh_single_type_check_magic.hhi",
-       "<?hh\n"
-       ^ "namespace {\n"
-       ^ "async function gena<Tk as arraykey, Tv>(
+  [|
+    ( "hh_single_type_check_magic.hhi",
+      "<?hh\n"
+      ^ "namespace {\n"
+      ^ "async function gena<Tk as arraykey, Tv>(
   KeyedTraversable<Tk, Awaitable<Tv>> $awaitables,
 ): Awaitable<darray<Tk, Tv>>;\n"
-       ^ "function hh_show(<<__AcceptDisposable>> $val) {}\n"
-       ^ "function hh_show_env() {}\n"
-       ^ "function hh_log_level($key, $level) {}\n"
-       ^ "function hh_force_solve () {}"
-       ^ "}\n"
-       ^ "namespace HH\\Lib\\Tuple{\n"
-       ^ "function gen();\n"
-       ^ "function from_async();\n"
-       ^ "}\n" ) |]
+      ^ "function hh_show(<<__AcceptDisposable>> $val) {}\n"
+      ^ "function hh_show_env() {}\n"
+      ^ "function hh_log_level($key, $level) {}\n"
+      ^ "function hh_force_solve () {}"
+      ^ "}\n"
+      ^ "namespace HH\\Lib\\Tuple{\n"
+      ^ "function gen();\n"
+      ^ "function from_async();\n"
+      ^ "}\n" );
+  |]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -193,13 +195,14 @@ let parse_options () =
   let disallow_byref_dynamic_calls = ref (Some false) in
   let disallow_byref_calls = ref (Some false) in
   let set_bool x () = x := Some true in
-  let pocket_universes = ref false in
   let shallow_class_decl = ref false in
   let out_extension = ref ".out" in
-  let like_types = ref false in
+  let like_type_hints = ref false in
+  let like_casts = ref false in
   let pessimize_types = ref false in
   let simple_pessimize = ref 0.0 in
   let coercion_from_dynamic = ref false in
+  let coercion_from_union = ref false in
   let complex_coercion = ref false in
   let disable_partially_abstract_typeconsts = ref false in
   let rust_parser_errors = ref false in
@@ -222,7 +225,8 @@ let parse_options () =
   let disable_halt_compiler = ref false in
   let disable_unset_class_const = ref false in
   let options =
-    [ ("--ai", Arg.String set_ai, " Run the abstract interpreter (Zoncolan)");
+    [
+      ("--ai", Arg.String set_ai, " Run the abstract interpreter (Zoncolan)");
       ( "--allow-user-attributes",
         Arg.Unit (set_bool allow_user_attributes),
         " Allow all user attributes" );
@@ -278,14 +282,18 @@ let parse_options () =
         " Print inheritance" );
       ( "--identify-symbol",
         Arg.Tuple
-          [ Arg.Int (fun x -> line := x);
+          [
+            Arg.Int (fun x -> line := x);
             Arg.Int
-              (fun column -> set_mode (Identify_symbol (!line, column)) ()) ],
+              (fun column -> set_mode (Identify_symbol (!line, column)) ());
+          ],
         "<pos> Show info about symbol at given line and column" );
       ( "--find-local",
         Arg.Tuple
-          [ Arg.Int (fun x -> line := x);
-            Arg.Int (fun column -> set_mode (Find_local (!line, column)) ()) ],
+          [
+            Arg.Int (fun x -> line := x);
+            Arg.Int (fun column -> set_mode (Find_local (!line, column)) ());
+          ],
         "<pos> Find all usages of local at given line and column" );
       ( "--max-errors",
         Arg.Int (fun num_errors -> max_errors := Some num_errors),
@@ -303,14 +311,18 @@ let parse_options () =
         " (mode) show full fidelity parse tree with types in json format." );
       ( "--find-refs",
         Arg.Tuple
-          [ Arg.Int (fun x -> line := x);
-            Arg.Int (fun column -> set_mode (Find_refs (!line, column)) ()) ],
+          [
+            Arg.Int (fun x -> line := x);
+            Arg.Int (fun column -> set_mode (Find_refs (!line, column)) ());
+          ],
         "<pos> Find all usages of a symbol at given line and column" );
       ( "--highlight-refs",
         Arg.Tuple
-          [ Arg.Int (fun x -> line := x);
+          [
+            Arg.Int (fun x -> line := x);
             Arg.Int
-              (fun column -> set_mode (Highlight_refs (!line, column)) ()) ],
+              (fun column -> set_mode (Highlight_refs (!line, column)) ());
+          ],
         "<pos> Highlight all usages of a symbol at given line and column" );
       ( "--decl-compare",
         Arg.Unit (set_mode Decl_compare),
@@ -366,9 +378,10 @@ let parse_options () =
         " Timeout in seconds for checking a function or a class." );
       ( "--hh-log-level",
         Arg.Tuple
-          [ Arg.String (fun x -> log_key := x);
+          [
+            Arg.String (fun x -> log_key := x);
             Arg.Int
-              (fun level -> log_levels := SMap.add !log_key level !log_levels)
+              (fun level -> log_levels := SMap.add !log_key level !log_levels);
           ],
         " Set the log level for a key" );
       ( "--batch-files",
@@ -402,15 +415,15 @@ let parse_options () =
         Arg.Unit (set_bool disallow_byref_calls),
         "Disallow passing arguments by reference in any form [e.g. foo(&$bar)]"
       );
-      ( "--pocket-universes",
-        Arg.Set pocket_universes,
-        "Enables support for Pocket Universes" );
       ( "--shallow-class-decl",
         Arg.Set shallow_class_decl,
         "Look up class members lazily from shallow declarations" );
-      ( "--like-types",
-        Arg.Set like_types,
-        "Allows deeper like types features like inferring trust" );
+      ( "--like-type-hints",
+        Arg.Set like_type_hints,
+        "Allows like types to be written in type hint positions" );
+      ( "--like-casts",
+        Arg.Set like_casts,
+        "Allows like types to be written in as expressions" );
       ( "--pessimize-types",
         Arg.Set pessimize_types,
         "When unenforceable types are encountered, convert them to like types"
@@ -423,6 +436,9 @@ let parse_options () =
         Arg.Set coercion_from_dynamic,
         "Allows coercion from dynamic to enforceable types at positions that HHVM enforces"
       );
+      ( "--coercion-from-union",
+        Arg.Set coercion_from_union,
+        "Allows coercion from union types" );
       ( "--complex-coercion",
         Arg.Set complex_coercion,
         "Allows complex coercions that involve like types" );
@@ -481,7 +497,8 @@ let parse_options () =
         "Make unsetting a class const a parse error" );
       ( "--disable-halt-compiler",
         Arg.Set disable_halt_compiler,
-        "Disable using PHP __halt_compiler()" ) ]
+        "Disable using PHP __halt_compiler()" );
+    ]
   in
   let options = Arg.align ~limit:25 options in
   Arg.parse options (fun fn -> fn_ref := fn :: !fn_ref) usage;
@@ -517,10 +534,12 @@ let parse_options () =
         !disallow_invalid_arraykey_constraint
       ~tco_check_xhp_attribute:!check_xhp_attribute
       ~tco_shallow_class_decl:!shallow_class_decl
-      ~tco_like_types:!like_types
+      ~tco_like_type_hints:!like_type_hints
+      ~tco_like_casts:!like_casts
       ~tco_pessimize_types:!pessimize_types
       ~tco_simple_pessimize:!simple_pessimize
       ~tco_coercion_from_dynamic:!coercion_from_dynamic
+      ~tco_coercion_from_union:!coercion_from_union
       ~tco_complex_coercion:!complex_coercion
       ~tco_disable_partially_abstract_typeconsts:
         !disable_partially_abstract_typeconsts
@@ -560,7 +579,6 @@ let parse_options () =
           tcopt.GlobalOptions.tco_experimental_features;
     }
   in
-  let tcopt = GlobalOptions.setup_pocket_universes tcopt !pocket_universes in
   (* Configure symbol index settings *)
   let namespace_map = GlobalOptions.po_auto_namespace_map tcopt in
   let sienv =
@@ -1354,7 +1372,7 @@ let handle_mode
            end
         ~init:files_info
     in
-    Relative_path.Map.iter files_info ~f:(fun file info ->
+    Relative_path.Map.iter files_info ~f:(fun _file info ->
         let { FileInfo.classes; _ } = info in
         List.iter classes ~f:(fun (_, classname) ->
             Printf.printf "Linearization for class %s:\n" classname;
@@ -1363,9 +1381,9 @@ let handle_mode
               Sequence.map linearization (fun mro ->
                   let name = mro.Decl_defs.mro_name in
                   let targs =
-                    List.map mro.Decl_defs.mro_type_args (fun ty ->
-                        let tenv = Typing_env.empty tcopt ~droot:None file in
-                        Typing_print.full tenv ty)
+                    List.map
+                      mro.Decl_defs.mro_type_args
+                      (Typing_print.full_decl tcopt)
                   in
                   let targs =
                     if targs = [] then
@@ -1375,7 +1393,8 @@ let handle_mode
                   in
                   Decl_defs.(
                     let modifiers =
-                      [ ( if Option.is_some mro.mro_required_at then
+                      [
+                        ( if Option.is_some mro.mro_required_at then
                           Some "requirement"
                         else if mro.mro_via_req_extends || mro.mro_via_req_impl
                       then
@@ -1399,7 +1418,8 @@ let handle_mode
                         else
                           None );
                         Option.map mro.mro_trait_reuse ~f:(fun c ->
-                            "trait reuse via " ^ c) ]
+                            "trait reuse via " ^ c);
+                      ]
                       |> List.filter_map ~f:(fun x -> x)
                       |> String.concat ~sep:", "
                     in

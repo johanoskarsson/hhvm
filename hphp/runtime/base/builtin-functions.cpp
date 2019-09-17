@@ -91,7 +91,10 @@ const StaticString s_cmpWithRecord(
   "Cannot use relational comparison operators (<, <=, >, >=, <=>) to compare "
   "records"
 );
-
+const StaticString s_cmpWithClsMeth(
+  "Cannot use relational comparison operators (<, <=, >, >=, <=>) to compare "
+  "a clsmeth with a non-clsmeth"
+);
 const StaticString s_cmpWithNonRecord(
   "Cannot compare records with non-records"
 );
@@ -432,7 +435,7 @@ vm_decode_function(const_variant_ref function,
   }
 
   if (function.isClsMeth()) {
-    dynamic = true;
+    dynamic = false;
     this_ = nullptr;
     auto const clsmeth = function.toClsMethVal();
     cls = clsmeth->getCls();
@@ -621,7 +624,8 @@ vm_decode_function(const_variant_ref function,
 }
 
 Variant vm_call_user_func(const_variant_ref function, const Variant& params,
-                          bool checkRef /* = false */) {
+                          bool checkRef /* = false */,
+                          bool allowDynCallNoPointer /* = false */) {
   CallCtx ctx;
   vm_decode_function(function, ctx);
   if (ctx.func == nullptr || (!isContainer(params) && !params.isNull())) {
@@ -629,7 +633,8 @@ Variant vm_call_user_func(const_variant_ref function, const Variant& params,
   }
   auto ret = Variant::attach(
     g_context->invokeFunc(ctx.func, params, ctx.this_, ctx.cls,
-                          ctx.invName, ctx.dynamic, checkRef)
+                          ctx.invName, ctx.dynamic, checkRef,
+                          allowDynCallNoPointer)
   );
   if (UNLIKELY(isRefType(ret.getRawType()))) {
     tvUnbox(*ret.asTypedValue());
@@ -652,11 +657,14 @@ static Variant invoke_failed(const char *func,
 
 static Variant
 invoke(const String& function, const Variant& params, strhash_t /*hash*/,
-       bool /*tryInterp*/, bool fatal) {
+       bool /*tryInterp*/, bool fatal /* = true */,
+       bool allowDynCallNoPointer /* = false */) {
   Func* func = Unit::loadFunc(function.get());
   if (func && (isContainer(params) || params.isNull())) {
     auto ret = Variant::attach(
-      g_context->invokeFunc(func, params)
+      g_context->invokeFunc(func, params, nullptr, nullptr, nullptr, true,
+                            false, allowDynCallNoPointer)
+
     );
     if (UNLIKELY(isRefType(ret.getRawType()))) {
       tvUnbox(*ret.asTypedValue());
@@ -669,9 +677,11 @@ invoke(const String& function, const Variant& params, strhash_t /*hash*/,
 // Declared in externals.h.  If you're considering calling this
 // function for some new code, please reconsider.
 Variant invoke(const char *function, const Variant& params, strhash_t hash /* = -1 */,
-               bool tryInterp /* = true */, bool fatal /* = true */) {
+               bool tryInterp /* = true */, bool fatal /* = true */,
+               bool allowDynCallNoPointer /* = false */) {
   String funcName(function, CopyString);
-  return invoke(funcName, params, hash, tryInterp, fatal);
+  return invoke(funcName, params, hash, tryInterp, fatal,
+                allowDynCallNoPointer);
 }
 
 Variant invoke_static_method(const String& s, const String& method,
@@ -811,6 +821,10 @@ void throw_rec_non_rec_compare_exception() {
 
 void throw_keyset_compare_exception() {
   SystemLib::throwInvalidOperationExceptionObject(s_cmpWithKeyset);
+}
+
+void throw_clsmeth_compare_exception() {
+  SystemLib::throwInvalidOperationExceptionObject(s_cmpWithClsMeth);
 }
 
 void throw_param_is_not_container() {

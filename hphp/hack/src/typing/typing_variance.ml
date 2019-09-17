@@ -562,8 +562,7 @@ and type_ tcopt root variance env (reason, ty) =
       variancel
       tyl
   | Ttuple tyl -> type_list tcopt root variance env tyl
-  (* when we add type params to type consts might need to change *)
-  | Taccess _ -> ()
+  | Taccess (ty, _) -> type_ tcopt root variance env ty
   | Tshape (_, ty_map) ->
     Nast.ShapeMap.iter
       begin
@@ -654,7 +653,7 @@ and constraint_ tcopt root env (ck, ((r, _) as ty)) =
   in
   type_ tcopt root var env ty
 
-and get_typarams root env (ty : decl ty) =
+and get_typarams root env (ty : decl_ty) =
   let empty = (SMap.empty, SMap.empty) in
   let union (pos1, neg1) (pos2, neg2) =
     ( SMap.union ~combine:(fun _ x y -> Some (x @ y)) pos1 pos2,

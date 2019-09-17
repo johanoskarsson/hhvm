@@ -245,6 +245,14 @@ impl SyntaxTrait for PositionedSyntax {
         self.value.leading_width()
     }
 
+    fn trailing_width(&self) -> usize {
+        self.value.trailing_width()
+    }
+
+    fn full_width(&self) -> usize {
+        self.leading_width() + self.width() + self.trailing_width()
+    }
+
     fn leading_start_offset(&self) -> usize {
         self.value.start_offset()
     }
@@ -262,16 +270,12 @@ pub trait PositionedSyntaxTrait: SyntaxTrait {
      * Similar to position except that the end_offset does not include
      * the last character. (the end offset is one larger than given by position)
      */
-    fn trailing_width(&self) -> usize;
     fn position_exclusive(&self, source_text: &IndexedSourceText) -> Option<Pos>;
     fn text<'a>(&self, source_text: &'a SourceText) -> &'a str;
+    fn leading_text<'a>(&self, source_text: &'a SourceText) -> &'a str;
 }
 
 impl PositionedSyntaxTrait for PositionedSyntax {
-    fn trailing_width(&self) -> usize {
-        self.value.trailing_width()
-    }
-
     fn start_offset(&self) -> usize {
         self.leading_start_offset() + self.leading_width()
     }
@@ -290,5 +294,9 @@ impl PositionedSyntaxTrait for PositionedSyntax {
 
     fn text<'a>(&self, source_text: &'a SourceText) -> &'a str {
         source_text.sub_as_str(self.start_offset(), self.width())
+    }
+
+    fn leading_text<'a>(&self, source_text: &'a SourceText) -> &'a str {
+        source_text.sub_as_str(self.leading_start_offset(), self.leading_width())
     }
 }

@@ -105,6 +105,7 @@ let parse_check_args cmd =
   let profile_log = ref false in
   let refactor_before = ref "" in
   let refactor_mode = ref "" in
+  let remote = ref false in
   let replace_state_after_saving = ref false in
   let sort_results = ref false in
   let timeout = ref None in
@@ -133,15 +134,16 @@ let parse_check_args cmd =
     | _ -> failwith "No other keywords should make it here"
   in
   let options =
-    [ (* Please keep these sorted in the alphabetical order *)
-      ( "--ai",
-        Arg.String
-          (fun s ->
-            ai_mode :=
-              Some
-                ( ignore (Ai_options.prepare ~server:true s);
-                  s )),
-        " run AI module with provided options" );
+    [
+      (* Please keep these sorted in the alphabetical order *)
+        ( "--ai",
+          Arg.String
+            (fun s ->
+              ai_mode :=
+                Some
+                  ( ignore (Ai_options.prepare ~server:true s);
+                    s )),
+          " run AI module with provided options" );
       ( "--ai-query",
         Arg.String (fun x -> set_mode (MODE_AI_QUERY x) ()),
         (* Send an AI query *) "" );
@@ -190,9 +192,9 @@ let parse_check_args cmd =
         ^ " rather than all the files in the codebase." );
       (* Delete an existing checkpoint.
        * Exitcode will be non-zero if no checkpoint is found *)
-      ( "--delete-checkpoint",
-        Arg.String (fun x -> set_mode (MODE_DELETE_CHECKPOINT x) ()),
-        "" );
+        ( "--delete-checkpoint",
+          Arg.String (fun x -> set_mode (MODE_DELETE_CHECKPOINT x) ()),
+          "" );
       ( "--dump-full-fidelity-parse",
         Arg.String (fun x -> set_mode (MODE_FULL_FIDELITY_PARSE x) ()),
         "" );
@@ -239,8 +241,10 @@ let parse_check_args cmd =
       Common_argspecs.force_dormant_start force_dormant_start;
       ( "--format",
         Arg.Tuple
-          [ Arg.Int (fun x -> format_from := x);
-            Arg.Int (fun x -> set_mode (MODE_FORMAT (!format_from, x)) ()) ],
+          [
+            Arg.Int (fun x -> format_from := x);
+            Arg.Int (fun x -> set_mode (MODE_FORMAT (!format_from, x)) ());
+          ],
         "" );
       Common_argspecs.from from;
       ( "--from-arc-diff",
@@ -290,10 +294,11 @@ let parse_check_args cmd =
       );
       ( "--gen-hot-classes-file",
         Arg.Tuple
-          [ Arg.Int (fun x -> hot_classes_threshold := x);
+          [
+            Arg.Int (fun x -> hot_classes_threshold := x);
             Arg.String
               (fun x ->
-                set_mode (MODE_GEN_HOT_CLASSES (!hot_classes_threshold, x)) ())
+                set_mode (MODE_GEN_HOT_CLASSES (!hot_classes_threshold, x)) ());
           ],
         " generate a JSON file listing all classes with more dependents than the"
         ^ " given threshold. Usage: --gen-hot-classes-file 500 ~/hh_hot_classes.json"
@@ -448,16 +453,19 @@ let parse_check_args cmd =
       ("--profile-log", Arg.Set profile_log, " enable profile logging");
       ( "--refactor",
         Arg.Tuple
-          [ Arg.Symbol
+          [
+            Arg.Symbol
               (["Class"; "Function"; "Method"], (fun x -> refactor_mode := x));
             Arg.String (fun x -> refactor_before := x);
             Arg.String
               (fun x ->
                 set_mode
                   (MODE_REFACTOR (!refactor_mode, !refactor_before, x))
-                  ()) ],
+                  ());
+          ],
         " (mode) rename a symbol, Usage: --refactor "
         ^ "[\"Class\", \"Function\", \"Method\"] <Current Name> <New Name>" );
+      ("--remote", Arg.Set remote, " force remote type checking");
       ( "--remove-dead-fixme",
         Arg.Int
           begin
@@ -489,9 +497,9 @@ let parse_check_args cmd =
       (* Retrieve changed files since input checkpoint.
        * Output is separated by newline.
        * Exit code will be non-zero if no checkpoint is found *)
-      ( "--retrieve-checkpoint",
-        Arg.String (fun x -> set_mode (MODE_RETRIEVE_CHECKPOINT x) ()),
-        "" );
+        ( "--retrieve-checkpoint",
+          Arg.String (fun x -> set_mode (MODE_RETRIEVE_CHECKPOINT x) ()),
+          "" );
       ("--retry-if-init", Arg.Bool (fun _ -> ()), " (deprecated and ignored)");
       ( "--rewrite-lambda-parameters",
         Arg.Rest
@@ -506,23 +514,6 @@ let parse_check_args cmd =
           end,
         " (mode) rewrite lambdas in the files from the given list"
         ^ " with suggested parameter types" );
-      ( "--save-naming",
-        Arg.String (fun x -> set_mode (MODE_SAVE_NAMING x) ()),
-        " (mode) Save the naming table to the given file."
-        ^ " Returns the number of files and symbols written to disk." );
-      ( "--rewrite-return-type",
-        Arg.Rest
-          begin
-            fun fn ->
-            mode :=
-              match !mode with
-              | None -> Some (MODE_REWRITE_RETURN_TYPE [fn])
-              | Some (MODE_REWRITE_RETURN_TYPE fnl) ->
-                Some (MODE_REWRITE_RETURN_TYPE (fn :: fnl))
-              | _ -> raise (Arg.Bad "only a single mode should be specified")
-          end,
-        " (mode) rewrite return types of function in the files from the given list"
-        ^ " with suggested return types" );
       ( "--rewrite-parameter-types",
         Arg.Rest
           begin
@@ -536,6 +527,37 @@ let parse_check_args cmd =
           end,
         " (mode) add type annotation of unannotated parameters in the files from the given list"
         ^ " with suggested types" );
+      ( "--rewrite-partial-parameters-type-hints",
+        Arg.Rest
+          begin
+            fun fn ->
+            mode :=
+              match !mode with
+              | None -> Some (MODE_REWRITE_TYPE_PARAMS_TYPE [fn])
+              | Some (MODE_REWRITE_TYPE_PARAMS_TYPE fnl) ->
+                Some (MODE_REWRITE_TYPE_PARAMS_TYPE (fn :: fnl))
+              | _ -> raise (Arg.Bad "only a single mode should be specified")
+          end,
+        " (mode) add missing type parameters in the type hints for function"
+        ^ " parameters (e.g.: C $x -> C<int> $x) in the files from the given list"
+      );
+      ( "--rewrite-return-type",
+        Arg.Rest
+          begin
+            fun fn ->
+            mode :=
+              match !mode with
+              | None -> Some (MODE_REWRITE_RETURN_TYPE [fn])
+              | Some (MODE_REWRITE_RETURN_TYPE fnl) ->
+                Some (MODE_REWRITE_RETURN_TYPE (fn :: fnl))
+              | _ -> raise (Arg.Bad "only a single mode should be specified")
+          end,
+        " (mode) rewrite return types of function in the files from the given list"
+        ^ " with suggested return types" );
+      ( "--save-naming",
+        Arg.String (fun x -> set_mode (MODE_SAVE_NAMING x) ()),
+        " (mode) Save the naming table to the given file."
+        ^ " Returns the number of files and symbols written to disk." );
       ( "--save-state",
         Arg.String (fun x -> set_mode (MODE_SAVE_STATE x) ()),
         " (mode) Save a saved state to the given file."
@@ -593,9 +615,10 @@ let parse_check_args cmd =
             set_mode (MODE_TYPED_FULL_FIDELITY_PARSE filename) ()),
         " (mode) show full fidelity parse tree with types. Implies --json." );
       ("--version", Arg.Set version, " (mode) show version and exit");
-      Common_argspecs.watchman_debug_logging watchman_debug_logging
-      (* Please keep these sorted in the alphabetical order *)
-     ]
+      Common_argspecs.watchman_debug_logging watchman_debug_logging;
+        (* Please keep these sorted in the alphabetical order *)
+      
+    ]
   in
   let args = parse_without_command options usage "check" in
   if !version then (
@@ -674,6 +697,7 @@ let parse_check_args cmd =
       output_json = !output_json;
       prechecked = !prechecked;
       profile_log = !profile_log;
+      remote = !remote;
       replace_state_after_saving = !replace_state_after_saving;
       root;
       sort_results = !sort_results;
@@ -706,8 +730,11 @@ let parse_start_env command =
       "WARNING: --wait is deprecated, does nothing, and will be going away soon!\n%!"
   in
   let options =
-    [ (* Please keep these sorted in the alphabetical order *)
-      ("--ai", Arg.String (fun x -> ai_mode := Some x), " run ai with options ");
+    [
+      (* Please keep these sorted in the alphabetical order *)
+        ( "--ai",
+          Arg.String (fun x -> ai_mode := Some x),
+          " run ai with options " );
       Common_argspecs.allow_non_opt_build allow_non_opt_build;
       Common_argspecs.config config;
       Common_argspecs.from from;
@@ -729,9 +756,10 @@ let parse_start_env command =
       ( "--wait",
         Arg.Unit wait_deprecation_msg,
         " this flag is deprecated and does nothing!" );
-      Common_argspecs.watchman_debug_logging watchman_debug_logging
-      (* Please keep these sorted in the alphabetical order *)
-     ]
+      Common_argspecs.watchman_debug_logging watchman_debug_logging;
+        (* Please keep these sorted in the alphabetical order *)
+      
+    ]
   in
   let args = parse_without_command options usage command in
   let root =
@@ -798,8 +826,9 @@ let parse_lsp_args () =
   let use_ffp_autocomplete = ref false in
   let use_serverless_ide = ref false in
   let options =
-    [ (* Please keep these sorted in the alphabetical order *)
-      ("--enhanced-hover", Arg.Unit (fun () -> ()), " [legacy] no-op");
+    [
+      (* Please keep these sorted in the alphabetical order *)
+        ("--enhanced-hover", Arg.Unit (fun () -> ()), " [legacy] no-op");
       ( "--ffp-autocomplete",
         Arg.Set use_ffp_autocomplete,
         " [experimental] use the full-fidelity parser based autocomplete " );
@@ -807,9 +836,10 @@ let parse_lsp_args () =
       ( "--serverless-ide",
         Arg.Set use_serverless_ide,
         " [experimental] provide IDE services from hh_client instead of hh_server"
-      )
-      (* Please keep these sorted in the alphabetical order *)
-     ]
+      );
+        (* Please keep these sorted in the alphabetical order *)
+      
+    ]
   in
   let args = parse_without_command options usage "lsp" in
   match args with

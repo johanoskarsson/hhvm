@@ -363,8 +363,6 @@ bool HHVM_FUNCTION(array_key_exists,
     case KindOfDict:
     case KindOfPersistentKeyset:
     case KindOfKeyset:
-    case KindOfPersistentShape:
-    case KindOfShape:
     case KindOfPersistentArray:
     case KindOfArray:
     case KindOfObject:
@@ -808,8 +806,6 @@ TypedValue HHVM_FUNCTION(array_product,
       case KindOfDict:
       case KindOfPersistentKeyset:
       case KindOfKeyset:
-      case KindOfPersistentShape:
-      case KindOfShape:
       case KindOfPersistentArray:
       case KindOfArray:
       case KindOfObject:
@@ -837,7 +833,6 @@ DOUBLE:
       case KindOfVec:
       case KindOfDict:
       case KindOfKeyset:
-      case KindOfShape:
       case KindOfArray:
       case KindOfClsMeth:
       case KindOfObject:
@@ -1103,8 +1098,6 @@ TypedValue HHVM_FUNCTION(array_sum,
       case KindOfDict:
       case KindOfPersistentKeyset:
       case KindOfKeyset:
-      case KindOfPersistentShape:
-      case KindOfShape:
       case KindOfPersistentArray:
       case KindOfArray:
       case KindOfObject:
@@ -1132,7 +1125,6 @@ DOUBLE:
       case KindOfVec:
       case KindOfDict:
       case KindOfKeyset:
-      case KindOfShape:
       case KindOfArray:
       case KindOfClsMeth:
       case KindOfObject:
@@ -1355,8 +1347,6 @@ int64_t HHVM_FUNCTION(count,
     case KindOfDict:
     case KindOfPersistentKeyset:
     case KindOfKeyset:
-    case KindOfPersistentShape:
-    case KindOfShape:
     case KindOfPersistentArray:
     case KindOfArray:
       if ((CountMode)mode == CountMode::RECURSIVE) {
@@ -1398,22 +1388,22 @@ namespace {
 
 enum class NoCow {};
 template<class DoCow = void, class NonArrayRet, class OpPtr>
-static Variant iter_op_impl(VRefParam refParam, OpPtr op, const String& objOp,
+static Variant iter_op_impl(Variant& refParam, OpPtr op, const String& objOp,
                             NonArrayRet nonArray,
                             const std::string& fnName,
                             bool(ArrayData::*pred)() const =
                               &ArrayData::isInvalid) {
-  auto& cell = *refParam.wrapped().toCell();
+  auto& cell = *refParam.toCell();
   if (!isArrayLikeType(cell.m_type)) {
     if (cell.m_type == KindOfObject) {
-      auto obj = refParam.wrapped().toObject();
+      auto obj = cell.m_data.pobj;
       if (obj->instanceof(SystemLib::s_ArrayObjectClass)) {
         return obj->o_invoke_few_args(objOp, 0);
       }
     }
     throw_bad_type_exception("%s() expects array, was %s",
                              fnName.c_str(),
-                             getDataTypeString(refParam->getType()).c_str());
+                             getDataTypeString(refParam.getType()).c_str());
     return Variant(nonArray);
   }
 
@@ -1422,12 +1412,7 @@ static Variant iter_op_impl(VRefParam refParam, OpPtr op, const String& objOp,
   if (doCow && ad->cowCheck() && !(ad->*pred)() &&
       !ad->noCopyOnWrite()) {
     ad = ad->copy();
-    if (LIKELY(refParam.isRefData())) {
-      cellMove(make_array_like_tv(ad), *refParam.getRefData()->cell());
-    } else {
-      req::ptr<ArrayData> tmp(ad, req::ptr<ArrayData>::NoIncRef{});
-      return (ad->*op)();
-    }
+    refParam = Variant::attach(ad);
   }
   return (ad->*op)();
 }
@@ -1445,7 +1430,7 @@ const StaticString
 
 
 Variant HHVM_FUNCTION(each,
-                      VRefParam refParam) {
+                      Variant& refParam) {
   return iter_op_impl(
     refParam,
     &ArrayData::each,
@@ -1456,9 +1441,11 @@ Variant HHVM_FUNCTION(each,
 }
 
 Variant HHVM_FUNCTION(current,
-                      VRefParam refParam) {
+                      const Variant& refParam) {
   return iter_op_impl<NoCow>(
-    refParam,
+    // NoCow version never actually modifies refParam but
+    // yet still requires non-const reference
+    const_cast<Variant&>(refParam),
     &ArrayData::current,
     s___current,
     false,
@@ -1466,15 +1453,12 @@ Variant HHVM_FUNCTION(current,
   );
 }
 
-Variant HHVM_FUNCTION(pos,
-                      VRefParam refParam) {
-  return HHVM_FN(current)(refParam);
-}
-
 Variant HHVM_FUNCTION(key,
-                      VRefParam refParam) {
+                      const Variant& refParam) {
   return iter_op_impl<NoCow>(
-    refParam,
+    // NoCow version never actually modifies refParam but
+    // yet still requires non-const reference
+    const_cast<Variant&>(refParam),
     &ArrayData::key,
     s___key,
     false,
@@ -1483,7 +1467,7 @@ Variant HHVM_FUNCTION(key,
 }
 
 Variant HHVM_FUNCTION(next,
-                      VRefParam refParam) {
+                      Variant& refParam) {
   return iter_op_impl(
     refParam,
     &ArrayData::next,
@@ -1494,7 +1478,7 @@ Variant HHVM_FUNCTION(next,
 }
 
 Variant HHVM_FUNCTION(prev,
-                      VRefParam refParam) {
+                      Variant& refParam) {
   return iter_op_impl(
     refParam,
     &ArrayData::prev,
@@ -1505,7 +1489,7 @@ Variant HHVM_FUNCTION(prev,
 }
 
 Variant HHVM_FUNCTION(reset,
-                      VRefParam refParam) {
+                      Variant& refParam) {
   return iter_op_impl(
     refParam,
     &ArrayData::reset,
@@ -1517,7 +1501,7 @@ Variant HHVM_FUNCTION(reset,
 }
 
 Variant HHVM_FUNCTION(end,
-                      VRefParam refParam) {
+                      Variant& refParam) {
   return iter_op_impl(
     refParam,
     &ArrayData::end,
@@ -3431,17 +3415,6 @@ TypedValue HHVM_FUNCTION(HH_array_key_cast, const Variant& input) {
       SystemLib::throwInvalidArgumentExceptionObject(
         "Keysets cannot be cast to an array-key"
       );
-    case KindOfPersistentShape:
-    case KindOfShape:
-      if (RuntimeOption::EvalHackArrDVArrs) {
-        SystemLib::throwInvalidArgumentExceptionObject(
-          "Dicts cannot be cast to an array-key"
-        );
-      } else {
-        SystemLib::throwInvalidArgumentExceptionObject(
-          "Arrays cannot be cast to an array-key"
-        );
-      }
     case KindOfPersistentArray:
     case KindOfArray:
       SystemLib::throwInvalidArgumentExceptionObject(
@@ -3606,7 +3579,6 @@ struct ArrayExtension final : Extension {
     HHVM_FE(each);
     HHVM_FE(current);
     HHVM_FE(next);
-    HHVM_FE(pos);
     HHVM_FE(prev);
     HHVM_FE(reset);
     HHVM_FE(end);

@@ -81,8 +81,10 @@ let print_compiler_version () =
     let compiler_version_msg =
       json_to_string
       @@ JSON_Object
-           [ ("type", JSON_String "compiler_version");
-             ("version", JSON_String (Compiler_id.get_compiler_id ())) ]
+           [
+             ("type", JSON_String "compiler_version");
+             ("version", JSON_String (Compiler_id.get_compiler_id ()));
+           ]
     in
     P.printf "%s\n%!" compiler_version_msg)
 
@@ -114,7 +116,8 @@ let parse_options () =
     P.sprintf "Usage: hh_single_compile (%s) filename\n" Sys.argv.(0)
   in
   let options =
-    [ ("--version", Arg.Set want_version, " print the version and do nothing");
+    [
+      ("--version", Arg.Set want_version, " print the version and do nothing");
       ("--fallback", Arg.Set fallback, " Enables fallback compilation");
       ( "--debug-time",
         Arg.Set debug_time,
@@ -158,7 +161,8 @@ let parse_options () =
         " Stop logging stats" );
       ( "--for-debugger-eval",
         Arg.Unit (fun () -> for_debugger_eval := true),
-        " Mutate the program as if we're in the debugger repl" ) ]
+        " Mutate the program as if we're in the debugger repl" );
+    ]
   in
   let options = Arg.align ~limit:25 options in
   Arg.parse options (fun fn -> fn_ref := Some fn) usage;
@@ -208,9 +212,11 @@ let fail_daemon file error =
     let msg =
       json_to_string
       @@ JSON_Object
-           [ ("type", JSON_String "error");
+           [
+             ("type", JSON_String "error");
              ("file", JSON_String file);
-             ("error", JSON_String error) ]
+             ("error", JSON_String error);
+           ]
     in
     P.printf "%s\n%!" msg;
     die error)
@@ -277,10 +283,6 @@ let parse_text compiler_options popt fn text =
   let lower_coroutines =
     Hhbc_options.enable_coroutines !Hhbc_options.compiler_options
   in
-  let pocket_universes =
-    Hhbc_options.enable_pocket_universes !Hhbc_options.compiler_options
-  in
-  let popt = ParserOptions.setup_pocket_universes popt pocket_universes in
   let env =
     Full_fidelity_ast.make_env
       ~parser_options:popt
@@ -450,23 +452,22 @@ let do_compile filename compiler_options popt fail_or_ast debug_time =
     log_success compiler_options filename debug_time;
   hhas
 
-let extract_facts ~filename ~source_root text =
-  [ Hhbc_options.(
+let extract_facts ~filename text =
+  [
+    Hhbc_options.(
       let co = !compiler_options in
-      match Hackc_parse_delegator.extract_facts filename source_root with
-      | Some result -> Hh_json.json_to_multiline ~sort_keys:true result
-      | None ->
-        Facts_parser.extract_as_json_string
-          ~php5_compat_mode:true
-          ~hhvm_compat_mode:true
-          ~disable_nontoplevel_declarations:
-            (phpism_disable_nontoplevel_declarations co)
-          ~disable_legacy_soft_typehints:(disable_legacy_soft_typehints co)
-          ~allow_new_attribute_syntax:(allow_new_attribute_syntax co)
-          ~disable_legacy_attribute_syntax:(disable_legacy_attribute_syntax co)
-          ~filename
-          ~text
-        |> Option.value ~default:"") ]
+      Facts_parser.extract_as_json_string
+        ~php5_compat_mode:true
+        ~hhvm_compat_mode:true
+        ~disable_nontoplevel_declarations:
+          (phpism_disable_nontoplevel_declarations co)
+        ~disable_legacy_soft_typehints:(disable_legacy_soft_typehints co)
+        ~allow_new_attribute_syntax:(allow_new_attribute_syntax co)
+        ~disable_legacy_attribute_syntax:(disable_legacy_attribute_syntax co)
+        ~filename
+        ~text
+      |> Option.value ~default:"");
+  ]
 
 let parse_hh_file filename body =
   Hhbc_options.(
@@ -520,26 +521,17 @@ let make_popt () =
       ~disable_unset_class_const:(disable_unset_class_const co))
 
 let process_single_source_unit
-    compiler_options
-    handle_output
-    handle_exception
-    filename
-    source_text
-    source_root =
+    compiler_options handle_output handle_exception filename source_text =
   try
     let popt = make_popt () in
     let debug_time = new_debug_time () in
     let t = Unix.gettimeofday () in
     let output =
       if compiler_options.extract_facts then
-        extract_facts ~filename ~source_root source_text
+        extract_facts ~filename source_text
       else
         let fail_or_ast =
-          match
-            Hackc_parse_delegator.parse_file filename source_text source_root
-          with
-          | Some fail_or_ast -> fail_or_ast
-          | None -> parse_file compiler_options popt filename source_text
+          parse_file compiler_options popt filename source_text
         in
         ignore @@ add_to_time_ref debug_time.parsing_t t;
         do_compile filename compiler_options popt fail_or_ast debug_time
@@ -584,9 +576,11 @@ let decl_and_run_mode compiler_options =
             List.fold ~f:(fun len s -> len + String.length s) ~init:0 output
           in
           let msg =
-            [ ("type", JSON_String "success");
+            [
+              ("type", JSON_String "success");
               ("file", JSON_String abs_path);
-              ("bytes", int_ bytes) ]
+              ("bytes", int_ bytes);
+            ]
           in
           let msg =
             if Hhbc_options.enable_perf_logging !Hhbc_options.compiler_options
@@ -607,9 +601,11 @@ let decl_and_run_mode compiler_options =
           let msg =
             json_to_string
             @@ JSON_Object
-                 [ ("type", JSON_String "error");
+                 [
+                   ("type", JSON_String "error");
                    ("file", JSON_String abs_path);
-                   ("error", JSON_String (Caml.Printexc.to_string exc)) ]
+                   ("error", JSON_String (Caml.Printexc.to_string exc));
+                 ]
           in
           P.printf "%s\n%!" msg
         in
@@ -672,7 +668,6 @@ let decl_and_run_mode compiler_options =
                     (fun _af -> JSON_Object [])
                     header
                 in
-                let source_root = get_field_opt (get_string "root") header in
                 set_compiler_options (Some config_overrides);
                 let compiler_options =
                   { compiler_options with for_debugger_eval }
@@ -684,7 +679,6 @@ let decl_and_run_mode compiler_options =
                     handle_exception
                     (Relative_path.create Relative_path.Dummy filename)
                     body
-                    source_root
                 in
                 Hhbc_options.set_compiler_options old_config;
                 result);
@@ -700,7 +694,6 @@ let decl_and_run_mode compiler_options =
                          ("Cannot determine file name of source unit: " ^ af))
                      header
                  in
-                 let source_root = get_field_opt (get_string "root") header in
                  let body =
                    if String.length body = 0 then
                      Sys_utils.cat filename
@@ -719,9 +712,7 @@ let decl_and_run_mode compiler_options =
                  in
                  set_compiler_options (Some config_overrides);
                  let result =
-                   handle_output
-                     path
-                     (extract_facts ~filename:path ~source_root body)
+                   handle_output path (extract_facts ~filename:path body)
                  in
                  Hhbc_options.set_compiler_options old_config;
                  result)
@@ -779,7 +770,6 @@ let decl_and_run_mode compiler_options =
             handle_exception
             filename
             (cat abs_path)
-            None
         in
         let (filenames, handle_output) =
           match compiler_options.input_file_list with

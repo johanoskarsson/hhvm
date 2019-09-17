@@ -5,16 +5,23 @@ import copy
 import difflib
 import inspect
 import itertools
-import lib2to3.patcomp  # pyre-ignore: Pyre can't find this
-import lib2to3.pgen2
-import lib2to3.pygram
-import lib2to3.pytree as pytree
-import operator
 import os.path
 import pprint
 import textwrap
-from typing import AbstractSet, Iterable, Mapping, Optional, Sequence, Tuple, Union
+from typing import (
+    AbstractSet,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
+import libcst
+from libcst.metadata.position_provider import SyntacticPositionProvider
+from libcst.metadata.wrapper import MetadataWrapper
 from lspcommand import LspCommandProcessor, Transcript, TranscriptEntry
 from utils import Json, VariableMap, interpolate_variables, uninterpolate_variables
 
@@ -278,7 +285,9 @@ If you want to examine the raw LSP logs, you can check the `.sent.log` and
                         "method": "$test/waitForRequest",
                         "params": {
                             "method": message.method,
-                            "params": message.params,
+                            "params": interpolate_variables(
+                                message.params, variables=variables
+                            ),
                             "result": message.result,
                         },
                     }
@@ -289,7 +298,12 @@ If you want to examine the raw LSP logs, you can check the `.sent.log` and
                         "jsonrpc": "2.0",
                         "comment": message.comment,
                         "method": "$test/waitForNotification",
-                        "params": {"method": message.method, "params": message.params},
+                        "params": {
+                            "method": message.method,
+                            "params": interpolate_variables(
+                                message.params, variables=variables
+                            ),
+                        },
                     }
                 )
             elif isinstance(message, _WaitForResponseSpec):
@@ -376,7 +390,7 @@ If you want to examine the raw LSP logs, you can check the `.sent.log` and
 
         handled_entries |= set(self._find_ignored_transcript_ids(transcript))
         yield from self._flag_unhandled_notifications(
-            handled_entries, transcript, lsp_id_map
+            handled_entries, variables, transcript, lsp_id_map
         )
 
     def _verify_request(
@@ -460,59 +474,22 @@ This was the associated request:
     def _find_line_range_for_function_call(
         self, file_contents: str, line_num_1idx: int
     ) -> Tuple[int, int]:
-        # pyre-fixme[18]: Global name `driver` is undefined.
-        driver = lib2to3.pgen2.driver.Driver(
-            grammar=lib2to3.pygram.python_grammar, convert=pytree.convert
-        )
-        tree = driver.parse_string(file_contents)
-
-        function_call_pattern = lib2to3.patcomp.compile_pattern(  # pyre-ignore
-            # For arithmetic precedence reasons, any regular, non-arithmetic
-            # expression node is a 'power' node, since that has the most extreme
-            # precedence in some respect. The 'trailer' denotes that it's
-            # followed by an argument list.
-            "power< any* trailer< '(' [any] ')' > >"
-        )
-        all_function_call_chains = [
-            # For similar arithmetic precedence reasons, consecutive function
-            # call and member access expressions appear to form one big n-ary
-            # node, instead of a sequence of nested binary nodes.
-            node
-            for node in tree.pre_order()
-            if function_call_pattern.match(node)
-        ]
-        all_function_calls = [
-            # Flatten all elements of all chains into one list.
-            child
-            for chain in all_function_call_chains
-            for child in chain.children
-        ]
-        function_calls_with_line_ranges = [
-            (node, self._line_range_of_node(node)) for node in all_function_calls
-        ]
+        tree = libcst.parse_module(file_contents)
+        function_call_finder = _FunctionCallFinder()
+        MetadataWrapper(tree).visit(function_call_finder)
         function_calls_containing_line = [
-            (node, (max_line_num_1idx_incl - min_line_num_1idx_incl))
-            for (
-                node,
-                (min_line_num_1idx_incl, max_line_num_1idx_incl),
-            ) in function_calls_with_line_ranges
-            if min_line_num_1idx_incl <= line_num_1idx <= max_line_num_1idx_incl
+            (node, node_range)
+            for node, node_range in function_call_finder.function_calls
+            if node_range.start.line <= line_num_1idx <= node_range.end.line
         ]
-        innermost_function_call = min(
-            function_calls_containing_line, key=operator.itemgetter(1)
-        )[0]
-        (start_line_num_1idx_incl, end_line_num_1idx_incl) = self._line_range_of_node(
-            innermost_function_call
-        )
-        start_line_num_0idx_incl = start_line_num_1idx_incl - 1
-        end_line_num_0idx_incl = end_line_num_1idx_incl - 1
+        node_range = min(
+            function_calls_containing_line,
+            key=lambda node_with_range: node_with_range[1].end.line
+            - node_with_range[1].start.line,
+        )[1]
+        start_line_num_0idx_incl = node_range.start.line - 1
+        end_line_num_0idx_incl = node_range.end.line - 1
         return (start_line_num_0idx_incl, end_line_num_0idx_incl)
-
-    def _line_range_of_node(self, node: pytree.Base) -> Tuple[int, int]:
-        min_line_num_1idx_incl = node.get_lineno()
-        num_lines_in_node = str(node).strip().count("\n")
-        max_line_num_1idx_incl = node.get_lineno() + num_lines_in_node
-        return (min_line_num_1idx_incl, max_line_num_1idx_incl)
 
     def _pretty_print_file_context(
         self,
@@ -525,10 +502,9 @@ This was the associated request:
         context_lines = source_lines[
             start_line_num_0idx_incl : end_line_num_0idx_incl + 1
         ]
-        vertical_bar = "\N{BOX DRAWINGS LIGHT VERTICAL}"
         context_lines = [
             # Include the line number in a gutter for display.
-            f"{line_num:>5} {vertical_bar} {line_contents}"
+            f"{line_num:>5} | {line_contents}"
             for line_num, line_contents in enumerate(
                 context_lines, start=start_line_num_0idx_incl + 1
             )
@@ -591,6 +567,7 @@ make it match:
     def _flag_unhandled_notifications(
         self,
         handled_entries: AbstractSet[str],
+        variables: VariableMap,
         transcript: Transcript,
         lsp_id_map: _LspIdMap,
     ) -> Iterable["_ErrorDescription"]:
@@ -603,7 +580,7 @@ make it match:
                 continue
 
             if entry.sent is not None:
-                # We received a request and responded it it.
+                # We received a request and responded to it.
                 continue
 
             method = received["method"]
@@ -633,6 +610,22 @@ respond to it before proceeding:
     )
 """
             else:
+                if any(
+                    isinstance(message, _WaitForNotificationSpec)
+                    and message.method == method
+                    and interpolate_variables(
+                        payload=message.params, variables=variables
+                    )
+                    == params
+                    for message in self._messages
+                ):
+                    # This was a notification we we explicitly waiting for, so skip
+                    # it.
+                    continue
+
+                uninterpolated_params = uninterpolate_variables(
+                    payload=params, variables=variables
+                )
                 description = f"""\
 An unexpected notification of type {method!r} was sent by the language server.
 Here is the notification payload:
@@ -653,7 +646,7 @@ to your test to wait for it before proceeding:
 
     .{self.wait_for_notification.__name__}(
         method={method!r},
-        params={params!r},
+        params={uninterpolated_params!r},
     )
 """
 
@@ -752,6 +745,38 @@ Remove this `debug` request once you're done debugging.
 
 
 ### Internal. ###
+
+
+class _FunctionCallFinder(libcst.CSTVisitor):
+    """Find function calls and their locations in the given syntax tree.
+
+    Chained function calls include the entire chain as the callee. For example,
+    the chain `x().y().z()` might include `x().y().z` as the callee and `()` as
+    the function call itself. But in the case of function call chains, we really
+    want just the range covered by the parentheses.
+
+    However, that's not directly available in `libcst`, so we approximate this
+    by finding the location of `z` and assume that's where the function call
+    starts.
+    """
+
+    METADATA_DEPENDENCIES = (SyntacticPositionProvider,)
+
+    def __init__(self) -> None:
+        self.function_calls: List[Tuple[libcst.Call, libcst.CodeRange]] = []
+
+    def visit_Call(self, node: libcst.Call) -> None:
+        node_range = self.get_metadata(SyntacticPositionProvider, node)
+
+        start_node = node.func
+        while isinstance(start_node, libcst.Attribute):
+            start_node = start_node.attr
+        start_node_range = self.get_metadata(SyntacticPositionProvider, start_node)
+        start_position = start_node_range.start
+        end_position = node_range.end
+        node_range = libcst.CodeRange(start=start_position, end=end_position)
+
+        self.function_calls.append((node, node_range))
 
 
 class _RequestSpec:

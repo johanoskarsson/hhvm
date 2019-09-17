@@ -329,27 +329,6 @@ const RepoOptions& RepoOptions::forFile(const char* path) {
   return ret ? *ret : defaults();
 }
 
-static inline std::string hhjsBabelTransformDefault() {
-  std::vector<folly::StringPiece> searchPaths;
-  folly::split(":", hhjsBabelTransform(), searchPaths);
-  std::string here = current_executable_directory();
-
-  for (folly::StringPiece searchPath : searchPaths) {
-    std::string transform = searchPath.toString();
-    std::size_t found = transform.find("{}");
-
-    if (found != std::string::npos) {
-      transform.replace(found, 2, here);
-    }
-
-    if (::access(transform.data(), X_OK) == 0) {
-      return transform;
-    }
-  }
-
-  return "";
-}
-
 std::string RepoOptions::cacheKeyRaw() const {
   return std::string("")
 #define N(_, n, ...) + mangleForKey(n)
@@ -390,7 +369,6 @@ folly::dynamic RepoOptions::toDynamic() const {
 #define H(_, n, ...) OUT("Hack.Lang." #n, n)
 #define E(_, n, ...) OUT("Eval." #n, n)
 PARSERFLAGS()
-PARSERFLAGSNOCACHEKEY()
 AUTOLOADFLAGS();
 #undef N
 #undef P
@@ -408,7 +386,6 @@ bool RepoOptions::operator==(const RepoOptions& o) const {
 #define H(_, n, ...) if (n != o.n) return false;
 #define E(_, n, ...) if (n != o.n) return false;
 PARSERFLAGS()
-PARSERFLAGSNOCACHEKEY()
 AUTOLOADFLAGS();
 #undef N
 #undef P
@@ -448,8 +425,7 @@ RepoOptions::RepoOptions(const char* file) : m_path(file) {
 #define P(_, n, ...) hdfExtract(parserConfig, "PHP7." #n, n, s_defaults.n);
 #define H(_, n, ...) hdfExtract(parserConfig, "Hack.Lang." #n, n, s_defaults.n);
 #define E(_, n, ...) hdfExtract(parserConfig, "Eval." #n, n, s_defaults.n);
-PARSERFLAGS()
-PARSERFLAGSNOCACHEKEY();
+PARSERFLAGS();
 #undef N
 #undef P
 #undef H
@@ -476,7 +452,6 @@ void RepoOptions::initDefaults(const Hdf& hdf, const IniSettingMap& ini) {
 #define H(_, n, dv) Config::Bind(n, ini, hdf, "Hack.Lang." #n, dv);
 #define E(_, n, dv) Config::Bind(n, ini, hdf, "Eval." #n, dv);
 PARSERFLAGS()
-PARSERFLAGSNOCACHEKEY()
 AUTOLOADFLAGS()
 #undef N
 #undef P
@@ -755,6 +730,7 @@ std::string RuntimeOption::TakeoverFilename;
 std::string RuntimeOption::AdminServerIP;
 int RuntimeOption::AdminServerPort = 0;
 int RuntimeOption::AdminThreadCount = 1;
+bool RuntimeOption::AdminServerStatsNeedPassword = true;
 std::string RuntimeOption::AdminPassword;
 std::set<std::string> RuntimeOption::AdminPasswords;
 std::set<std::string> RuntimeOption::HashedAdminPasswords;
@@ -1024,6 +1000,38 @@ static inline bool layoutPrologueSplitHotColdDefault() {
 
 uint64_t ahotDefault() {
   return RuntimeOption::RepoAuthoritative ? 4 << 20 : 0;
+}
+
+folly::Optional<folly::fs::path> RuntimeOption::GetHomePath(
+  const folly::StringPiece user) {
+
+  auto homePath = folly::fs::path{RuntimeOption::SandboxHome}
+    / folly::fs::path{user};
+  if (folly::fs::is_directory(homePath)) {
+    return {std::move(homePath)};
+  }
+
+  if (!RuntimeOption::SandboxFallback.empty()) {
+    homePath = folly::fs::path{RuntimeOption::SandboxFallback}
+      / folly::fs::path{user};
+    if (folly::fs::is_directory(homePath)) {
+      return {std::move(homePath)};
+    }
+  }
+
+  return {};
+}
+
+bool RuntimeOption::ReadPerUserSettings(const folly::fs::path& confFileName,
+                                        IniSettingMap& ini, Hdf& config) {
+  try {
+    Config::ParseConfigFile(confFileName.native(), ini, config, false);
+    return true;
+  } catch (HdfException& e) {
+    Logger::Error("%s ignored: %s", confFileName.native().c_str(),
+                  e.getMessage().c_str());
+    return false;
+  }
 }
 
 std::string RuntimeOption::getTraceOutputFile() {
@@ -1364,6 +1372,7 @@ void RuntimeOption::Load(
         [&] (const String& f) {
           if (access(f.data(), R_OK) == 0) {
             fullpath = f.toCppString();
+            FTRACE_MOD(Trace::watchman_autoload, 3, "Parsing {}\n", fullpath);
             Config::ParseConfigFile(fullpath, ini, config);
             return true;
           }
@@ -2384,6 +2393,8 @@ void RuntimeOption::Load(
     Config::Bind(AdminServerIP, ini, config, "AdminServer.IP", ServerIP);
     Config::Bind(AdminServerPort, ini, config, "AdminServer.Port", 0);
     Config::Bind(AdminThreadCount, ini, config, "AdminServer.ThreadCount", 1);
+    Config::Bind(AdminServerStatsNeedPassword, ini, config,
+                 "AdminServer.StatsNeedPassword", AdminServerStatsNeedPassword);
     Config::Bind(AdminPassword, ini, config, "AdminServer.Password");
     Config::Bind(AdminPasswords, ini, config, "AdminServer.Passwords");
     Config::Bind(HashedAdminPasswords, ini, config,

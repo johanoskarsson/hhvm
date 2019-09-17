@@ -161,12 +161,18 @@ let check_const
     Tast_check.def opts def;
     Some def
 
+let should_enable_deferring
+    (opts : GlobalOptions.t) (file : check_file_computation) =
+  match GlobalOptions.tco_max_times_to_defer_type_checking opts with
+  | Some max_times when file.deferred_count >= max_times -> false
+  | _ -> true
+
 let process_file
     (dynamic_view_files : Relative_path.Set.t)
     (opts : GlobalOptions.t)
     (errors : Errors.t)
     (file : check_file_computation) : Errors.t * file_computation list =
-  Deferred_decl.reset ();
+  Deferred_decl.reset ~enable:(should_enable_deferring opts file);
   let fn = file.path in
   let file_infos = file.names in
   let opts =
@@ -198,9 +204,10 @@ let process_file
       | _ ->
         ( errors,
           List.concat
-            [ deferred_files;
-              [Check { file with deferred_count = file.deferred_count + 1 }] ]
-        )
+            [
+              deferred_files;
+              [Check { file with deferred_count = file.deferred_count + 1 }];
+            ] )
     in
     result
   with e ->
@@ -241,16 +248,23 @@ let process_files
   SharedMem.invalidate_caches ();
   File_provider.local_changes_push_stack ();
   Ast_provider.local_changes_push_stack ();
-  let process_file_wrapper =
-    if !Utils.profile then (
-      fun acc file ->
+
+  let process_file_profiled dynamic_view_files opts acc file =
     let start_time = Unix.gettimeofday () in
     let result = process_file dynamic_view_files opts acc file in
+    let files_to_declare =
+      List.count (snd result) ~f:(fun f ->
+          match f with
+          | Declare _ -> true
+          | _ -> false)
+    in
     let filepath = Relative_path.suffix file.path in
     TypingLogger.ProfileTypeCheck.log
       ~init_id:check_info.init_id
       ~recheck_id:check_info.recheck_id
       ~start_time
+      ~times_checked:(file.deferred_count + 1)
+      ~files_to_declare
       ~absolute:(Relative_path.to_absolute file.path)
       ~relative:filepath;
     let _t =
@@ -259,15 +273,20 @@ let process_files
         start_time
     in
     result
-    ) else
-      process_file dynamic_view_files opts
+  in
+  let process_file_wrapper =
+    if !Utils.profile then
+      process_file_profiled
+    else
+      process_file
   in
   let rec process_or_exit errors progress =
     match progress.remaining with
     | fn :: fns ->
       let (errors, deferred) =
         match fn with
-        | Check file -> process_file_wrapper errors file
+        | Check file ->
+          process_file_wrapper dynamic_view_files opts errors file
         | Declare path ->
           let errors = Decl_service.decl_file errors path in
           (errors, [])
@@ -351,10 +370,10 @@ let merge
   files_checked_count :=
     !files_checked_count + completed_check_count - deferred_check_count;
   ServerProgress.send_percentage_progress_to_monitor
-    "typechecking"
-    !files_checked_count
-    files_initial_count
-    "files";
+    ~operation:"typechecking"
+    ~done_count:!files_checked_count
+    ~total_count:files_initial_count
+    ~unit:"files";
   Errors.merge errors acc
 
 let next
@@ -417,10 +436,10 @@ let process_in_parallel
   let files_processed_count = ref 0 in
   let files_initial_count = List.length fnl in
   ServerProgress.send_percentage_progress_to_monitor
-    "typechecking"
-    0
-    files_initial_count
-    "files";
+    ~operation:"typechecking"
+    ~done_count:0
+    ~total_count:files_initial_count
+    ~unit:"files";
   let next = next workers files_to_process files_in_progress in
   let should_prefetch_deferred_files =
     Vfs.is_vfs () && TypecheckerOptions.prefetch_deferred_files opts
@@ -552,7 +571,9 @@ let go_with_interrupt
     )
   in
   if !Utils.profile then
-    TypingLogger.ProfileTypeCheck.print_path ~init_id:check_info.init_id;
+    TypingLogger.ProfileTypeCheck.print_path
+      ~init_id:check_info.init_id
+      ~recheck_id:check_info.recheck_id;
   result
 
 let go

@@ -102,23 +102,27 @@ let empty_tyvar_info =
     type_constants = SMap.empty;
   }
 
+let create_tyvar_info ?variance pos =
+  let tyvar_info =
+    match variance with
+    | Some Ast_defs.Invariant ->
+      {
+        empty_tyvar_info with
+        appears_covariantly = true;
+        appears_contravariantly = true;
+      }
+    | Some Ast_defs.Covariant ->
+      { empty_tyvar_info with appears_covariantly = true }
+    | Some Ast_defs.Contravariant ->
+      { empty_tyvar_info with appears_contravariantly = true }
+    | None -> empty_tyvar_info
+  in
+  { tyvar_info with tyvar_pos = pos }
+
 let add_current_tyvar ?variance env p v =
   match env.tyvars_stack with
   | (expr_pos, tyvars) :: rest ->
-    let tyvar_info =
-      match variance with
-      | Some Ast_defs.Invariant ->
-        {
-          empty_tyvar_info with
-          appears_covariantly = true;
-          appears_contravariantly = true;
-        }
-      | Some Ast_defs.Covariant ->
-        { empty_tyvar_info with appears_covariantly = true }
-      | Some Ast_defs.Contravariant ->
-        { empty_tyvar_info with appears_contravariantly = true }
-      | None -> empty_tyvar_info
-    in
+    let tyvar_info = create_tyvar_info ?variance p in
     let env =
       env_with_tvenv
         env
@@ -156,12 +160,6 @@ let get_type env x_reason x =
   | None -> (env, (x_reason, Tvar x))
   | Some ty -> (env, ty)
 
-let get_type_unsafe env x =
-  let ty = IMap.get x env.tenv in
-  match ty with
-  | None -> (env, (Reason.none, Typing_defs.make_tany ()))
-  | Some ty -> (env, ty)
-
 let get_tyvar_info_opt env var =
   let tyvaropt = IMap.get var env.tvenv in
   match tyvaropt with
@@ -172,15 +170,20 @@ let get_tyvar_info_opt env var =
 let get_tyvar_info env var =
   Option.value (get_tyvar_info_opt env var) ~default:empty_tyvar_info
 
-let set_tvenv_link_global_tyvar env var =
-  env_with_tvenv env (IMap.add var GlobalTyvar env.tvenv)
-
 let update_tyvar_info env var tyvar_info =
   if IMap.get var env.tvenv = Some GlobalTyvar then
     let env = env_with_tvenv env (IMap.add var GlobalTyvar env.tvenv) in
     env_with_global_tvenv env (IMap.add var tyvar_info env.global_tvenv)
   else
     env_with_tvenv env (IMap.add var (LocalTyvar tyvar_info) env.tvenv)
+
+let create_global_tyvar ?variance env var pos =
+  let tyvar_info = create_tyvar_info ?variance pos in
+  let env = env_with_tvenv env (IMap.add var GlobalTyvar env.tvenv) in
+  if not @@ IMap.mem var env.global_tvenv then
+    update_tyvar_info env var tyvar_info
+  else
+    env
 
 let get_tyvar_eager_solve_fail env var =
   let tvinfo = get_tyvar_info env var in
@@ -211,6 +214,8 @@ let get_shape_field_name_pos = function
     p
 
 let next_cont_opt env = LEnvC.get_cont_option C.Next env.lenv.per_cont_env
+
+let all_continuations env = LEnvC.all_continuations env.lenv.per_cont_env
 
 let get_tpenv env =
   match next_cont_opt env with
@@ -325,6 +330,11 @@ let get_generic_parameters env =
 let get_tpenv_size env =
   TPEnv.size (get_tpenv env) + TPEnv.size env.global_tpenv
 
+let is_consistent env = TPEnv.is_consistent (get_tpenv env)
+
+let mark_inconsistent env =
+  env_with_tpenv env (TPEnv.mark_inconsistent (get_tpenv env))
+
 (*****************************************************************************
  * Operations to get or add bounds to type variables.
  * There is a lot of code duplication from the tpenv code here, which we
@@ -438,7 +448,7 @@ let is_fresh_generic_parameter name =
 
 let tparams_visitor env =
   object (this)
-    inherit [SSet.t] Type_visitor.type_visitor
+    inherit [SSet.t] Type_visitor.locl_type_visitor
 
     method! on_tabstract acc _ ak _ty_opt =
       match ak with
@@ -954,6 +964,8 @@ let tany env =
     Tdynamic
   else
     Typing_defs.make_tany ()
+
+let decl_tany = tany
 
 let get_local_in_ctx env ?error_if_undef_at_pos:p x ctx_opt =
   let not_found_is_ok x ctx =

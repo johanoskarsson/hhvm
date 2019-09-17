@@ -34,6 +34,7 @@ extern const StaticString s_cmpWithCollection;
 extern const StaticString s_cmpWithVec;
 extern const StaticString s_cmpWithDict;
 extern const StaticString s_cmpWithKeyset;
+extern const StaticString s_cmpWithClsMeth;
 extern const StaticString s_cmpWithRecord;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -111,7 +112,7 @@ inline bool is_array(const Cell* c) {
     }
     return false;
   }
-  return tvIsArrayOrShape(c);
+  return tvIsArray(c);
 }
 
 inline bool is_vec(const Cell* c) {
@@ -130,7 +131,7 @@ inline bool is_vec(const Cell* c) {
 
 inline bool is_dict(const Cell* c) {
   assertx(cellIsPlausible(*c));
-  return tvIsDictOrShape(c);
+  return tvIsDict(c);
 }
 
 inline bool is_keyset(const Cell* c) {
@@ -155,7 +156,7 @@ inline bool is_varray(const Cell* c) {
 
 inline bool is_darray(const Cell* c) {
   return RuntimeOption::EvalHackArrDVArrs
-    ? tvIsDictOrShape(c)
+    ? tvIsDict(c)
     : (tvIsArray(c) && c->m_data.parr->isDArray());
 }
 
@@ -222,13 +223,14 @@ std::pair<Class*, Func*> decode_for_clsmeth(
   DecodeFlags flags = DecodeFlags::Warn);
 
 Variant vm_call_user_func(const_variant_ref function, const Variant& params,
-                          bool checkRef = false);
+                          bool checkRef = false,
+                          bool allowDynCallNoPointer = false);
 template<typename T>
-Variant vm_call_user_func(T&& t, const Variant& params,
-                          bool checkRef = false) {
+Variant vm_call_user_func(T&& t, const Variant& params, bool checkRef = false,
+                          bool allowDynCallNoPointer = false) {
   const Variant function{std::forward<T>(t)};
   return vm_call_user_func(
-    const_variant_ref{function}, params, checkRef
+    const_variant_ref{function}, params, checkRef, allowDynCallNoPointer
   );
 }
 
@@ -252,6 +254,7 @@ bool is_constructor_name(const char* func);
 [[noreturn]] void throw_vec_compare_exception();
 [[noreturn]] void throw_dict_compare_exception();
 [[noreturn]] void throw_keyset_compare_exception();
+[[noreturn]] void throw_clsmeth_compare_exception();
 [[noreturn]] void throw_record_compare_exception();
 [[noreturn]] void throw_rec_non_rec_compare_exception();
 [[noreturn]] void throw_param_is_not_container();

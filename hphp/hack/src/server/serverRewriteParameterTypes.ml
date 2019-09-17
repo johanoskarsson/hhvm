@@ -28,9 +28,11 @@ let parameter_type_collector =
     method! on_fun_param env fun_param =
       Pos.AbsolutePosMap.singleton
         (Pos.to_absolute fun_param.Aast.param_pos)
-        [ ( env,
+        [
+          ( env,
             Typing_defs.LoclTy
-              (type_of_type_hint env fun_param.Aast.param_type_hint) ) ]
+              (type_of_type_hint env fun_param.Aast.param_type_hint) );
+        ]
 
     (* Deactivate the codemod for methods *)
     method! on_method_ _ _ = Pos.AbsolutePosMap.empty
@@ -42,7 +44,7 @@ let collect_types tast =
 let is_not_acceptable ty =
   let finder =
     object (this)
-      inherit [_] Type_visitor.type_visitor
+      inherit [_] Type_visitor.locl_type_visitor
 
       method! on_tprim acc _ =
         function
@@ -55,8 +57,6 @@ let is_not_acceptable ty =
       (* We consider both dynamic and nothing to be non acceptable as
       they are "too narrow" and imprecise *)
       method! on_tdynamic _ _ = true
-
-      method! on_tnothing _ _ = true
 
       (* mixed, even though we could infer it and add it, might lead to further
       problems and doesn't gives us a lot of information. More conceptually

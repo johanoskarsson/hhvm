@@ -17,7 +17,7 @@ module MakeType = Typing_make_type
 
 let is_object env ty = Typing_solver.is_sub_type env ty (Reason.Rnone, Tobject)
 
-let sub_string (p : Pos.Map.key) (env : env) (ty : locl ty) : env =
+let sub_string (p : Pos.Map.key) (env : env) (ty : locl_ty) : env =
   (* Under constraint-based inference, we implement sub_string as a subtype test.
    * All the cases in the legacy implementation just fall out from subtyping rules.
    * We test against ?(arraykey | bool | float | resource | object | dynamic |
@@ -26,13 +26,15 @@ let sub_string (p : Pos.Map.key) (env : env) (ty : locl ty) : env =
   let r = Reason.Rwitness p in
   let (env, formatter_tyvar) = Env.fresh_invariant_type_var env p in
   let tyl =
-    [ MakeType.arraykey r;
+    [
+      MakeType.arraykey r;
       MakeType.bool r;
       MakeType.float r;
       MakeType.resource r;
       MakeType.dynamic r;
       MakeType.class_type r SN.Classes.cFormatString [formatter_tyvar];
-      MakeType.class_type r SN.Classes.cHHFormatString [formatter_tyvar] ]
+      MakeType.class_type r SN.Classes.cHHFormatString [formatter_tyvar];
+    ]
   in
   let stringish =
     (Reason.Rwitness p, Tclass ((p, SN.Classes.cStringish), Nonexact, []))

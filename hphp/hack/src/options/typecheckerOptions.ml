@@ -20,6 +20,9 @@ let disallow_ambiguous_lambda = GlobalOptions.tco_disallow_ambiguous_lambda
 let defer_class_declaration_threshold =
   GlobalOptions.tco_defer_class_declaration_threshold
 
+let max_times_to_defer_type_checking =
+  GlobalOptions.tco_max_times_to_defer_type_checking
+
 let prefetch_deferred_files = GlobalOptions.tco_prefetch_deferred_files
 
 let remote_type_check_threshold = GlobalOptions.tco_remote_type_check_threshold
@@ -110,13 +113,17 @@ let ignore_collection_expr_type_arguments =
 
 let shallow_class_decl = GlobalOptions.tco_shallow_class_decl
 
-let like_types = GlobalOptions.tco_like_types
+let like_type_hints = GlobalOptions.tco_like_type_hints
+
+let like_casts = GlobalOptions.tco_like_casts
 
 let pessimize_types = GlobalOptions.tco_pessimize_types
 
 let simple_pessimize = GlobalOptions.tco_simple_pessimize
 
 let coercion_from_dynamic = GlobalOptions.tco_coercion_from_dynamic
+
+let coercion_from_union = GlobalOptions.tco_coercion_from_union
 
 let complex_coercion = GlobalOptions.tco_complex_coercion
 

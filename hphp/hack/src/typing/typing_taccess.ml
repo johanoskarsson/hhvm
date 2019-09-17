@@ -239,6 +239,7 @@ and expand env ~as_tyvar_with_cnstr root id =
               let ty = Typing_print.error env.tenv root in
               fun () ->
                 Errors.non_object_member
+                  ~is_method:false
                   tconst
                   (Reason.to_pos root_reason)
                   ty
@@ -265,16 +266,16 @@ and expand env ~as_tyvar_with_cnstr root id =
       Typing_subtype_tconst.get_tyvar_type_const env.tenv n id
     in
     ({ env with tenv }, ty)
-  | Tpu _ ->
-    failwithf
-      "TODO(T36532263) expand_ty: Tpu type access %s"
-      (Pp_type.show_ty () root)
-      ()
-  | Tpu_access _ ->
-    failwithf
-      "TODO(T36532263) expand_ty: Tpu_access type access %s"
-      (Pp_type.show_ty () root)
-      ()
+  (* TODO(T36532263): Pocket Universes *)
+  | Tpu (base, _, _) ->
+    let reason = fst base in
+    let pos = Reason.to_pos reason in
+    raise_error (fun _ -> Errors.pu_expansion pos)
+  (* TODO(T36532263): Pocket Universes *)
+  | Tpu_access (base, _) ->
+    let reason = fst base in
+    let pos = Reason.to_pos reason in
+    raise_error (fun _ -> Errors.pu_expansion pos)
   | Tanon _
   | Tobject
   | Tnonnull
@@ -290,7 +291,12 @@ and expand env ~as_tyvar_with_cnstr root id =
     let (pos, tconst) = id in
     let ty = Typing_print.error env.tenv root in
     raise_error (fun () ->
-        Errors.non_object_member tconst pos ty (Reason.to_pos root_reason))
+        Errors.non_object_member
+          ~is_method:false
+          tconst
+          pos
+          ty
+          (Reason.to_pos root_reason))
 
 (* The function takes a "step" forward in the expansion. We look up the type
  * constant associated with the given class_name and create a new root type.

@@ -242,11 +242,6 @@ VariableUnserializer::RefInfo::makeDictValue(tv_lval v) {
   return RefInfo{v, Type::DictValue};
 }
 
-VariableUnserializer::RefInfo
-VariableUnserializer::RefInfo::makeShapeValue(tv_lval v) {
-  return RefInfo{v, Type::ShapeValue};
-}
-
 tv_lval VariableUnserializer::RefInfo::var() const {
   return m_data.drop_tag();
 }
@@ -331,8 +326,6 @@ void VariableUnserializer::add(tv_lval v, UnserializeMode mode) {
     m_refs.emplace_back(RefInfo::makeDictValue(v));
   } else if (mode == UnserializeMode::ColValue) {
     m_refs.emplace_back(RefInfo::makeColValue(v));
-  } else if (mode == UnserializeMode::ShapeValue) {
-    m_refs.emplace_back(RefInfo::makeShapeValue(v));
   } else {
     assertx(mode == UnserializeMode::ColKey);
     // We don't currently support using the 'R' encoding to refer to collection
@@ -908,13 +901,6 @@ void VariableUnserializer::unserializeVariant(
       throwUnknownType(type);
     }
     break;
-  case 'H': // Shape
-    {
-      check_recursion_throw();
-      auto a = unserializeShape();
-      tvMove(make_array_like_tv(a.detach()), self);
-    }
-    return; // Shape has '}' terminating
   case 'a': // PHP array
   case 'D': // Dict
     {
@@ -1349,7 +1335,10 @@ Array VariableUnserializer::unserializeDict() {
 
   if (size == 0) {
     expectChar('}');
-    return Array::attach(arrprov::makeEmptyDict(provTag));
+    return Array::attach(provTag
+      ? arrprov::makeEmptyDict(provTag)
+      : staticEmptyDictArray()
+    );
   }
   if (UNLIKELY(size < 0 || size > std::numeric_limits<int>::max())) {
     throwArraySizeOutOfBounds();
@@ -1414,7 +1403,10 @@ Array VariableUnserializer::unserializeVec() {
 
   if (size == 0) {
     expectChar('}');
-    return Array::attach(arrprov::makeEmptyVec(provTag));
+    return Array::attach(provTag
+      ? arrprov::makeEmptyVec(provTag)
+      : staticEmptyVecArray()
+    );
   }
   if (UNLIKELY(size < 0 || size > std::numeric_limits<int>::max())) {
     throwArraySizeOutOfBounds();
@@ -1602,14 +1594,6 @@ Array VariableUnserializer::unserializeDArray() {
 
   check_non_safepoint_surprise();
   expectChar('}');
-  return arr;
-}
-
-Array VariableUnserializer::unserializeShape() {
-  // Shapes need to behave like DArrays externally in the serializer. Calling
-  // unserializeDict here produces incompatible behaviour with getDefaultValueText()
-  auto arr = unserializeDArray();
-  arr = arr->toShapeInPlaceIfCompatible();
   return arr;
 }
 

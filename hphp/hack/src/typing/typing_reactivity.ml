@@ -18,7 +18,7 @@ module CT = SubType.ConditionTypes
 module MakeType = Typing_make_type
 
 type method_call_info = {
-  receiver_type: locl ty;
+  receiver_type: locl_ty;
   receiver_is_self: bool;
   is_static: bool;
   method_name: string;
@@ -27,10 +27,9 @@ type method_call_info = {
 let make_call_info ~receiver_is_self ~is_static receiver_type method_name =
   { receiver_type; receiver_is_self; is_static; method_name }
 
-let type_to_str : type a. env -> a ty -> string =
- fun env ty ->
+let type_to_str env ty =
   (* strip expression dependent types to make error message clearer *)
-  let rec unwrap : type a. a ty -> a ty = function
+  let rec unwrap = function
     | (_, Tabstract (AKdependent DTthis, Some ty)) -> unwrap ty
     | ty -> ty
   in
@@ -280,7 +279,7 @@ let check_call env method_info pos reason ft arg_types =
                 arg_ty :: arg_tl ) ->
               let ty =
                 if Typing_utils.is_option env fp_type.et_type then
-                  MakeType.nullable (fst ty) ty
+                  MakeType.nullable_decl (fst ty) ty
                 else
                   ty
               in
@@ -301,7 +300,7 @@ let check_call env method_info pos reason ft arg_types =
               when Typing_utils.is_option env fp_type.et_type ->
               (* if there are more parameters than actual arguments - assume that remaining parameters
             have default values (actual arity check is performed elsewhere).  *)
-              let ty = MakeType.nullable (fst ty) ty in
+              let ty = MakeType.nullable_decl (fst ty) ty in
               (* Treat missing arguments as if null was provided explicitly *)
               let arg_ty = MakeType.null Reason.none in
               check_only_rx_if_impl
@@ -383,7 +382,7 @@ let generate_fresh_name_for_target_of_condition_type
     Some
       ( Typing_print.full env target_type
       ^ "#"
-      ^ Typing_print.full env condition_type )
+      ^ Typing_print.full_decl (Env.get_tcopt env) condition_type )
   | _ -> None
 
 let try_substitute_type_with_condition env cond_ty ty =

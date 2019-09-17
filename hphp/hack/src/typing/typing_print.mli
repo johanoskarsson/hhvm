@@ -13,25 +13,21 @@ open Typing_env_types
 (* Pretty printing of types *)
 (*****************************************************************************)
 
-val error : env -> Typing_defs.locl Typing_defs.ty -> string
+val error : env -> Typing_defs.locl_ty -> string
 
-val suggest : 'a Typing_defs.ty -> string
+val full : env -> Typing_defs.locl_ty -> string
 
-val full : env -> 'a Typing_defs.ty -> string
-
-val full_rec : env -> int -> 'a Typing_defs.ty -> string
+val full_rec : env -> int -> Typing_defs.locl_ty -> string
 
 val full_strip_ns : env -> 'a Typing_defs.ty -> string
 
-val full_decl :
-  TypecheckerOptions.t -> Typing_defs.decl Typing_defs.ty -> string
+val full_decl : TypecheckerOptions.t -> Typing_defs.decl_ty -> string
 
-val fun_type :
-  TypecheckerOptions.t -> Typing_defs.decl Typing_defs.fun_type -> string
+val fun_type : TypecheckerOptions.t -> Typing_defs.decl_fun_type -> string
 
 val full_with_identity :
   env ->
-  'a Typing_defs.ty ->
+  Typing_defs.locl_ty ->
   'b SymbolOccurrence.t ->
   'b SymbolDefinition.t option ->
   string
@@ -49,7 +45,7 @@ val fun_ : TypecheckerOptions.t -> Decl_provider.fun_decl -> string
 
 val typedef : TypecheckerOptions.t -> Decl_provider.typedef_decl -> string
 
-val constraints_for_type : env -> 'a Typing_defs.ty -> string option
+val constraints_for_type : env -> Typing_defs.locl_ty -> string option
 
 val class_kind : Ast_defs.class_kind -> bool -> string
 
@@ -108,4 +104,4 @@ manipulate. Note that this function accesses the global state in
 val json_to_locl_ty :
   ?keytrace:Hh_json.Access.keytrace ->
   Hh_json.json ->
-  (Typing_defs.locl Typing_defs.ty, Typing_defs.deserialization_error) result
+  (Typing_defs.locl_ty, Typing_defs.deserialization_error) result

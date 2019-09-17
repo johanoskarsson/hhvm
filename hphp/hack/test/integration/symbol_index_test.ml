@@ -96,7 +96,6 @@ let run_index_builder (harness : Test_harness.t) : si_env =
       json_chunk_size = 0;
       custom_service = None;
       custom_repo_name = None;
-      include_builtins = true;
       set_paths_for_worker = false;
       hhi_root_folder = Some hhi_folder;
       silent = true;
@@ -197,8 +196,10 @@ let test_sqlite_plus_local (harness : Test_harness.t) : bool =
     }
   in
   let changelist =
-    [ (bar1path, Full bar1fileinfo, TypeChecker);
-      (foo3path, Full foo3fileinfo, TypeChecker) ]
+    [
+      (bar1path, Full bar1fileinfo, TypeChecker);
+      (foo3path, Full foo3fileinfo, TypeChecker);
+    ]
   in
   SymbolIndex.update_files ~sienv ~workers:None ~paths:changelist;
   let n = LocalSearchService.count_local_fileinfos !sienv in
@@ -399,7 +400,8 @@ let tests args =
       template_repo = args.Args.template_repo;
     }
   in
-  [ ( "test_sqlite_plus_local",
+  [
+    ( "test_sqlite_plus_local",
       fun () ->
         Test_harness.run_test
           ~stop_server_in_teardown:false
@@ -422,7 +424,8 @@ let tests args =
         Test_harness.run_test
           ~stop_server_in_teardown:false
           harness_config
-          test_docblock_finder ) ]
+          test_docblock_finder );
+  ]
 
 let () =
   Daemon.check_entry_point ();
