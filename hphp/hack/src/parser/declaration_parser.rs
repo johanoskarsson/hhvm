@@ -443,7 +443,7 @@ where
         let (as_token, alias) = if self.peek_token_kind() == TokenKind::As {
             let as_token = self.next_token();
             let as_token = S!(make_token, self, as_token);
-            let alias = self.require_name();
+            let alias = self.require_class_name();
             (as_token, alias)
         } else {
             let missing1 = S!(make_missing, self, self.pos());
