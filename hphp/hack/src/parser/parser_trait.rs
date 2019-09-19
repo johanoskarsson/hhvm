@@ -600,6 +600,15 @@ where
         self.require_token(TokenKind::Name, Errors::error1004)
     }
 
+    fn require_xhp_class_name_or_name(&mut self) -> S::R {
+        if self.is_next_xhp_class_name() {
+            let token = self.next_xhp_class_name();
+            S!(make_token, self, token)
+        } else {
+            self.require_token(TokenKind::Name, Errors::error1004)
+        }
+    }
+
     fn require_class_name(&mut self) -> S::R {
         if self.is_next_xhp_class_name() {
             let token = self.next_xhp_class_name();
