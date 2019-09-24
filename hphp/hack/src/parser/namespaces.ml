@@ -220,22 +220,25 @@ let elaborate_defined_id nsenv kind (p, id) =
   in
   ((p, newid), nsenv, update_nsenv)
 
-(* TODO: Stolen from the Xhp module. I assume we don't want a dependency between the two? *)
-let is_xhp s = String.length s <> 0 && s.[0] = ':'
-
-let strip_colon s = String_utils.lstrip s ":"
-
 let rec elaborate_xhp_namespace_impl parts =
   match parts with
   | [] -> ""
   | h :: [] -> ":" ^ h
   | h::t -> h ^ "\\" ^ elaborate_xhp_namespace_impl t
 
+(* If the given id is an xhp id, for example :foo:bar
+ * we will pull it apart into foo and bar, then reassemble
+ * into \foo\:bar. This gives us the fully qualified name
+ * in a way that the rest of elaborate_id_impl expects.
+ *)
 let elaborate_xhp_namespace id =
+  let is_xhp s = String.length s <> 0 && s.[0] = ':' in
+  let strip_colon s = String_utils.lstrip s ":" in
+
   if is_xhp id = false then
     id
   else
-    (* all xhp ids here have a leading colon *)
+    (* all xhp ids here have a leading colon here that we don't want to split on *)
     let parts = String.split (strip_colon id) ~on: ':' in
     if List.length parts > 1 then
       elaborate_xhp_namespace_impl parts
@@ -259,6 +262,7 @@ let elaborate_xhp_namespace id =
  * used to be other schemes here.)
  *)
 let elaborate_id_impl nsenv kind id =
+  (* in case we've found an xhp id let's do some preparation to get it into the \namespace\:xhp format *)
   let id = elaborate_xhp_namespace id in
 
   if id <> "" && id.[0] = '\\' then
