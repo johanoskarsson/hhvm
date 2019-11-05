@@ -3,7 +3,7 @@
 class Superclass {}
 class Subclass extends Superclass {}
 
-class :foo {
+xhp class foo {
   attribute
     Superclass mysuperclass,
     Subclass mysubclass;

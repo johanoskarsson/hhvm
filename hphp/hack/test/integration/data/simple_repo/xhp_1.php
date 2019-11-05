@@ -1,7 +1,7 @@
 <?hh // partial
 
 
-final class :xhp:helloworld implements XHPChild
+final xhp class xhp:helloworld implements XHPChild
 {
   attribute int x;
 }

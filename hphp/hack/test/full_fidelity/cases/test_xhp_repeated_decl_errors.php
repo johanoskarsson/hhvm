@@ -1,11 +1,11 @@
 <?hh // strict
 
-class :foo {
+xhp class foo {
   children empty;
   children empty;
 }
 
-class :bar {
+xhp class bar {
   category %foo;
   category %foo;
 }

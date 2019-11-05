@@ -1,10 +1,10 @@
 <?hh // partial
 
-class :ui<T> {
+xhp class ui<T> {
 
 }
 
 
-class :g extends :ui<int> {
+xhp class g extends :ui<int> {
   /* HH_FIXME4110 */
 }

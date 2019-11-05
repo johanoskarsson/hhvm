@@ -1,6 +1,6 @@
 <?hh // partial
 
-class :something extends :xhp {
+xhp class something extends xhpclass {
   attribute Foo x @required;
 
   public function render() {
@@ -12,6 +12,6 @@ function takes_string(string $s) {}
 
 class Foo extends Enum<int> {}
 
-class :xhp {}
+xhp class xhpclass {}
 
 class Enum<T> {}

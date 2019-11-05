@@ -19,8 +19,8 @@ function foo(): void {
   $z = <div><!-- an xhp comment </div>--></div>;
 }
 
-class :div {
+xhp class div {
   attribute string x, string y;
 }
-class :h implements XHPChild {}
-class :p implements XHPChild {}
+xhp class h implements XHPChild {}
+xhp class p implements XHPChild {}

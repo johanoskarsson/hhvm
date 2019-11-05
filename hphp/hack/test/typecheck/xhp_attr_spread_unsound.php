@@ -1,14 +1,14 @@
 <?hh // strict
 
-class :foo {
+xhp class foo {
   attribute string name;
 }
 
-class :subfoo extends :foo {
+xhp class subfoo extends :foo {
   attribute string age;
 }
 
-class :bar {
+xhp class bar {
   attribute int age;
 }
 

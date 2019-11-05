@@ -11,7 +11,7 @@
 
 class A implements XHPChild {}
 
-class :x:dumb {}
+xhp class x:dumb {}
 
 function foo(mixed $x): void {
   // Almost anything goes in XHP

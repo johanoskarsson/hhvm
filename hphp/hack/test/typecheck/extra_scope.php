@@ -9,7 +9,7 @@
  *
  */
 
-class :foo {
+xhp class foo {
 
   public static function test(): void { }
 }

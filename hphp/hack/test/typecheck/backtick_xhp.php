@@ -9,7 +9,7 @@
  *
  */
 
-final class :ui:link {}
+final xhp class ui:link {}
 
 class Bloo {
   public function mybloo(): void {

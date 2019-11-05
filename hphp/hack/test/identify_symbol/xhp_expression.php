@@ -1,6 +1,6 @@
 <?hh
 
-class :xhp:foo-element {}
+xhp class xhp:foo-element {}
 
 function test() {
   <xhp:foo-element />;

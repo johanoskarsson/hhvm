@@ -1,7 +1,7 @@
 <?hh // strict
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-final class :MyFancyXHPClass extends :OtherXHPThing {
+final xhp class MyFancyXHPClass extends :OtherXHPThing {
 
   protected async function genXHP(): Awaitable<:xhp> {
     $button = <x:button use="primary">Click This Extra Extra Extra Long Text</x:button>;

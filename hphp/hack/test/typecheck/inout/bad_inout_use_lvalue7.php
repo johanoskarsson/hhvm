@@ -2,7 +2,7 @@
 
 function f(inout int $i): void {}
 
-class :x:foo {
+xhp class x:foo {
   attribute int attr @required;
 
   public function test(): void {

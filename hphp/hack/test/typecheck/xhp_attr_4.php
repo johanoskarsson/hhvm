@@ -1,12 +1,12 @@
 <?hh // strict
-class :baz {
+xhp class baz {
   attribute int x @required;
 }
-class :bar {
+xhp class bar {
   // Import all attributes from :baz
   attribute :baz;
 }
-class :foo {
+xhp class foo {
   // Import all attributes from :bar
   attribute :bar;
 }

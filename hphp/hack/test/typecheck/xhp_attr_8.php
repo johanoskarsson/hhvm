@@ -1,5 +1,5 @@
 <?hh // strict
-class :foo {
+xhp class foo {
   // Typechecker must consider this nullable
   attribute int x = null;
 }

@@ -1,7 +1,7 @@
 <?hh
-final class :x {
+final xhp class x {
 }
-class :h {}
-class :g extends :h {
+xhp class h {}
+xhp class g extends :h {
   attribute :x;
 }

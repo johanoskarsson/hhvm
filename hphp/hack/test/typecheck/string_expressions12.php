@@ -15,6 +15,6 @@ class Dude {
   }
 }
 
-class :fbt {
+xhp class fbt {
   attribute string project;
 }

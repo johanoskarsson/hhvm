@@ -51,6 +51,6 @@ class A {
   }
 }
 
-class :cls {
+xhp class cls {
   public ?int $x;
 }

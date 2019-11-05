@@ -14,10 +14,10 @@ class Base {
   use A;
 }
 
-class :foo:core {
+xhp class foo:core {
   use A;
 }
 
-class :foo extends Base {
+xhp class foo extends Base {
   attribute :foo:core;
 }

@@ -3,6 +3,6 @@
 class A {
   const type T = int;
 }
-class :x {
+xhp class x {
   attribute A::T y;
 }

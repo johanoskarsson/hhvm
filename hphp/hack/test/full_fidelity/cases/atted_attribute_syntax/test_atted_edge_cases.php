@@ -1,6 +1,6 @@
 <?hh
 
-class :test {
+xhp class test {
   attribute int id @required;
   attribute string name @lateinit;
 }

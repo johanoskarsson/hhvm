@@ -2,7 +2,7 @@
 
 // Hacky replacement XHP base class for testing. Modeled after
 // :x:composable-element
-abstract class :base {
+abstract xhp class base {
   private Map<string, mixed> $attributes = Map {};
   private Vector<XHPChild> $children = Vector {};
 
@@ -65,7 +65,7 @@ class Cns {
 }
 class A {}
 
-class :foo extends :base {
+xhp class foo extends :base {
   category %foo, %bar;
 
   attribute
@@ -80,11 +80,11 @@ class :foo extends :base {
     :blah1,
     :blah2;
 }
-class :lol extends :base {}
-class :blah1 extends :base {
+xhp class lol extends :base {}
+xhp class blah1 extends :base {
   attribute int arg1 = 1;
 }
-class :blah2 extends :base {
+xhp class blah2 extends :base {
   attribute int arg2 = 2;
 }
 

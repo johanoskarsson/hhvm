@@ -1,7 +1,7 @@
 <?hh
 
-class :foo {}
+xhp class foo {}
 
-class :bar {
+xhp class bar {
   attribute :foo;
 }

@@ -1,8 +1,8 @@
 <?hh // strict
 
-class :xhp implements XHPChild {}
-class :foo extends :xhp {}
-class :bar extends :xhp {}
+xhp class xhp implements XHPChild {}
+xhp class foo extends :xhp {}
+xhp class bar extends :xhp {}
 
 class A {
   public function __toString(): string {

@@ -13,6 +13,6 @@ function test(): void {
   $x = <xx children=""/>;
 }
 
-class :xx {
+xhp class xx {
   attribute string children;
 }

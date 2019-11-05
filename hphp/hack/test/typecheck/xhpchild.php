@@ -9,7 +9,7 @@
  *
  */
 
-class :x implements XHPChild {}
+xhp class x implements XHPChild {}
 
 function f1(XHPChild $x): void {}
 

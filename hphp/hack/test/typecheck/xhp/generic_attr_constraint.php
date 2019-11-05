@@ -1,6 +1,6 @@
 <?hh // strict
 
-class :my-xhp<T as num> {
+xhp class my-xhp<T as num> {
   attribute T foo @required;
 }
 

@@ -9,7 +9,7 @@
  *
  */
 
-class :div extends :blah {}
+xhp class div extends :blah {}
 
 class Meh {
   protected function foo(): Xhp {
@@ -17,4 +17,4 @@ class Meh {
   }
 }
 
-class :blah {}
+xhp class blah {}

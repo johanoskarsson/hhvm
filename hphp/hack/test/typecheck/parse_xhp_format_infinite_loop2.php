@@ -1,4 +1,4 @@
 <?hh // partial
 
-class :foo extends :xhp {
+xhp class foo extends :xhp {
       attribute

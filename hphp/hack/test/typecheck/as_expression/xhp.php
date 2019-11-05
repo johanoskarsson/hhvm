@@ -1,6 +1,6 @@
 <?hh // strict
 
-final class :my-xhp {}
+final xhp class my-xhp {}
 
 function f(mixed $x): void {
   expect_xhp($x as :my-xhp);

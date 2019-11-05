@@ -1,3 +1,3 @@
 <?hh
 
-class :xhp:foo-element {}
+xhp class xhp:foo-element {}

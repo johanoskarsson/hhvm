@@ -1,17 +1,17 @@
 <?hh // strict
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-class :a { attribute int a @required;}
-class :b { attribute int a @lateinit;}
-class :c { attribute int a;}
-class :d {
+xhp class a { attribute int a @required;}
+xhp class b { attribute int a @lateinit;}
+xhp class c { attribute int a;}
+xhp class d {
   attribute
     int a @required,
     int b @lateinit,
     int c;
 }
-class :e { attribute :a;}
-class :f { attribute :b;}
+xhp class e { attribute :a;}
+xhp class f { attribute :b;}
 
 function bar(): void {
   // No error

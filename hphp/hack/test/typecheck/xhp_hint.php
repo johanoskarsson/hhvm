@@ -1,6 +1,6 @@
 <?hh // partial
 
-class :foo {}
+xhp class foo {}
 
 function f(): :foo {
   return 1;

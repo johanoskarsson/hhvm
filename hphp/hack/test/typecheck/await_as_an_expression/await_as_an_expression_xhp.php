@@ -1,6 +1,6 @@
 <?hh // strict
 
-final class :my-xhp {
+final xhp class my-xhp {
   attribute int x;
 }
 
