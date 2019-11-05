@@ -79,6 +79,7 @@ and kind =
   | Private
   | Public
   | Protected
+  | XHP
 
 and typedef = {
   t_id: id;
@@ -556,6 +557,7 @@ let string_of_kind = function
   | Private -> "private"
   | Public -> "public"
   | Protected -> "protected"
+  | XHP -> "xhp"
 
 (** A {!reducer} is a AST visitor which is not in control of the iteration
  * (and thus cannot change the order of the iteration or choose not to visit

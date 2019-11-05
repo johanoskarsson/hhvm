@@ -648,6 +648,7 @@ if there already is one, since that one will likely be better than this one. *)
       | Some TK.Public -> (has_async, has_coroutine, add_kind Public)
       | Some TK.Protected -> (has_async, has_coroutine, add_kind Protected)
       | Some TK.Var -> (has_async, has_coroutine, add_kind Public)
+      | Some TK.XHP -> (has_async, has_coroutine, add_kind XHP)
       | Some TK.Async -> (true, has_coroutine, kinds)
       | Some TK.Coroutine -> (has_async, true, kinds)
       | _ -> missing_syntax "kind" node env
@@ -2103,7 +2104,7 @@ if there already is one, since that one will likely be better than this one. *)
           env.ignore_pos <- false;
           let name =
             let (pos, name) = pos_name xhp_open_name env in
-            (pos, ":" ^ name)
+            (pos, name)
           in
           let combine b e = make_token Token.(concatenate b e) in
           let aggregate_tokens node =
@@ -3617,7 +3618,7 @@ if there already is one, since that one will likely be better than this one. *)
       let c_is_xhp =
         match token_kind name with
         | Some (TK.XHPElementName | TK.XHPClassName) -> true
-        | _ -> false
+        | _ -> List.mem kinds XHP ~equal:( = )
       in
       let c_name = pos_name name env in
       env.cls_reified_generics := SSet.empty;
@@ -3645,9 +3646,11 @@ if there already is one, since that one will likely be better than this one. *)
       let c_enum = None in
       let c_span = pPos node env in
       let c_kind =
+        let is_xhp = List.mem kinds XHP ~equal:( = ) in
         let is_abs = List.mem kinds Abstract ~equal:( = ) in
         match token_kind kw with
         | Some TK.Class when is_abs -> Cabstract
+        | Some TK.Class when is_xhp -> Cxhp
         | Some TK.Class -> Cnormal
         | Some TK.Interface -> Cinterface
         | Some TK.Trait -> Ctrait

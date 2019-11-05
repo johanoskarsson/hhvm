@@ -29,6 +29,7 @@ let check_fulfillment env get_impl (parent_pos, req_ty) =
 let check_class env tc =
   match Cls.kind tc with
   | Ast_defs.Cnormal
+  | Ast_defs.Cxhp
   | Ast_defs.Cabstract ->
     Sequence.iter
       (Cls.all_ancestor_reqs tc)

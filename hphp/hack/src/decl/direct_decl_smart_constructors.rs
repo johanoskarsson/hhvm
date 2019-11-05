@@ -57,9 +57,9 @@ fn mangle_xhp_id(mut name: String) -> String {
 
     if !ignore_id(&name) {
         if is_xhp(&name) {
-            name.replace_range(..1, "xhp_")
+            name.replace_range(..1, "")
         }
-        name.replace(":", "__").replace("-", "_")
+        name.replace(":", "__")
     } else {
         name
     }

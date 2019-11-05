@@ -571,6 +571,7 @@ let get_class_declaration tcopt (cls : Decl_provider.class_decl) =
     let kind =
       match Class.kind cls with
       | Ast_defs.Cabstract -> "abstract class"
+      | Ast_defs.Cxhp -> "xhp class"
       | Ast_defs.Cnormal -> "class"
       | Ast_defs.Cinterface -> "interface"
       | Ast_defs.Ctrait -> "trait"

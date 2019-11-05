@@ -2163,8 +2163,7 @@ where
                         .collect::<std::result::Result<Vec<_>, _>>()?;
 
                     Ok(E_::mk_xml(
-                        // TODO: update pos_name to support prefix
-                        ast_defs::Id(name.0, String::from(":") + &name.1),
+                        ast_defs::Id(name.0, name.1),
                         attrs,
                         exprs,
                     ))
@@ -4515,7 +4514,7 @@ where
                 let is_xhp = match Self::token_kind(&c.classish_name) {
                     Some(TK::XHPElementName) => true,
                     Some(TK::XHPClassName) => true,
-                    _ => false,
+                    _ => kinds.has(modifier::XHP),
                 };
                 let name = Self::pos_name(&c.classish_name, env)?;
                 *env.cls_reified_generics() = HashSet::new();
@@ -4533,6 +4532,9 @@ where
                 let class_kind = match Self::token_kind(&c.classish_keyword) {
                     Some(TK::Class) if kinds.has(modifier::ABSTRACT) => {
                         ast_defs::ClassKind::Cabstract
+                    }
+                    Some(TK::Class) if kinds.has(modifier::XHP) => {
+                        ast_defs::ClassKind::Cxhp
                     }
                     Some(TK::Class) => ast_defs::ClassKind::Cnormal,
                     Some(TK::Interface) => ast_defs::ClassKind::Cinterface,

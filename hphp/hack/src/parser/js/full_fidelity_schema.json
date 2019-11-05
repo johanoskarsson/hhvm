@@ -389,6 +389,8 @@
       "token_text" : "?>" },
     { "token_kind" : "ColonAt",
       "token_text" : ":@" },
+    { "token_kind" : "XHP",
+      "token_text" : "xhp" },
 
     { "token_kind" : "ErrorToken",
       "token_text" : null },

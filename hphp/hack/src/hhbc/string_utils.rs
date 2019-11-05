@@ -69,9 +69,9 @@ pub fn mangle_xhp_id(mut name: String) -> String {
 
     if !ignore_id(&name) && MANGLE_XHP_MODE.with(|x| x.get()) {
         if is_xhp(&name) {
-            name.replace_range(..1, "xhp_")
+            name.replace_range(..1, "")
         }
-        name.replace(":", "__").replace("-", "_")
+        name.replace(":", "__")
     } else {
         name
     }

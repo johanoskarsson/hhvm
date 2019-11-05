@@ -48,6 +48,7 @@ pub type Reified = bool;
 pub enum ClassKind {
     Cabstract,
     Cnormal,
+    Cxhp,
     Cinterface,
     Ctrait,
     Cenum,

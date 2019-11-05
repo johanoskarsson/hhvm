@@ -80,6 +80,7 @@ let handler =
       let () =
         match c.c_kind with
         | Ast_defs.Cabstract
+        | Ast_defs.Cxhp
         | Ast_defs.Cnormal ->
           ()
         | Ast_defs.Cinterface

@@ -7455,6 +7455,7 @@ and check_parent_sealed child_type parent_type =
       | (Ast_defs.Cinterface, _) -> check "interface" "implement"
       | (Ast_defs.Ctrait, _) -> check "trait" "use"
       | (Ast_defs.Cabstract, _)
+      | (Ast_defs.Cxhp, _)
       | (Ast_defs.Cnormal, _) ->
         check "class" "extend"
       | (Ast_defs.Cenum, _) -> ()

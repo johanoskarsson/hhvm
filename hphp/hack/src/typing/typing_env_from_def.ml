@@ -48,6 +48,7 @@ let class_env tcopt c =
     | Ast_defs.Cenum -> (env, MakeType.class_type (fst self) (snd c.c_name) [])
     | Ast_defs.Cinterface
     | Ast_defs.Cabstract
+    | Ast_defs.Cxhp
     | Ast_defs.Ctrait
     | Ast_defs.Cnormal ->
       Typing_phase.localize_with_self env self

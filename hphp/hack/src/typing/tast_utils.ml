@@ -121,6 +121,7 @@ let rec truthiness env ty =
       | Some cls ->
         (match Cls.kind cls with
         | Cnormal
+        | Cxhp
         | Cabstract ->
           Always_truthy
         | Cinterface
@@ -213,6 +214,7 @@ let rec find_sketchy_types env acc ty =
         (match Cls.kind cls with
         | Cinterface -> Traversable_interface (Env.print_ty env ty) :: acc
         | Cnormal
+        | Cxhp
         | Cabstract
         | Ctrait
         | Cenum ->

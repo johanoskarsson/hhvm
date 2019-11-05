@@ -205,6 +205,7 @@ type t =
   | LessThanQuestion
   | QuestionGreaterThan
   | ColonAt
+  | XHP
   (* Variable text tokens *)
   | ErrorToken
   | Name
@@ -422,6 +423,7 @@ let from_string keyword ~only_reserved =
   | "<?"                                     -> Some LessThanQuestion
   | "?>"                                     -> Some QuestionGreaterThan
   | ":@"                                     -> Some ColonAt
+  | "xhp"                                    -> Some XHP
   | _              -> None
 
 let to_string kind =
@@ -613,6 +615,7 @@ let to_string kind =
   | LessThanQuestion              -> "<?"
   | QuestionGreaterThan           -> "?>"
   | ColonAt                       -> ":@"
+  | XHP                           -> "xhp"
   (* Variable text tokens *)
   | ErrorToken                    -> "error_token"
   | Name                          -> "name"

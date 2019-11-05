@@ -549,9 +549,11 @@ where
     }
 
     pub fn parse_classish_declaration(&mut self, attribute_spec: S::R) -> S::R {
+        // TODO get from modifiers somehow
+        let is_xhp = self.peek_token_kind() == TokenKind::XHP;
         let modifiers = self.parse_classish_modifiers();
         let token = self.parse_classish_token();
-        let name = self.require_class_name();
+        let name = if is_xhp { self.require_xhp_class_name() } else { self.require_class_name() };
         let generic_type_parameter_list = self.parse_generic_type_parameter_list_opt();
         let (classish_extends, classish_extends_list) = self.parse_extends_opt();
         let (classish_implements, classish_implements_list) = self.parse_classish_implements_opt();
@@ -599,7 +601,7 @@ where
         let mut acc = vec![];
         loop {
             match self.peek_token_kind() {
-                TokenKind::Abstract | TokenKind::Final => {
+                TokenKind::Abstract | TokenKind::XHP | TokenKind::Final => {
                     // TODO(T25649779)
                     let token = self.next_token();
                     let token = S!(make_token, self, token);
@@ -2030,6 +2032,7 @@ where
                 | TokenKind::Private
                 | TokenKind::Async
                 | TokenKind::Coroutine
+                | TokenKind::XHP
                 | TokenKind::Final => {
                     let token = self.next_token();
                     let item = S!(make_token, self, token);
@@ -2077,6 +2080,7 @@ where
             | TokenKind::Final
             | TokenKind::Interface
             | TokenKind::Trait
+            | TokenKind::XHP
             | TokenKind::Class => {
                 self.continue_from(parser1);
                 self.parse_classish_declaration(attribute_specification)
@@ -2344,7 +2348,7 @@ where
                     let missing = S!(make_missing, self, self.pos());
                     self.parse_classish_declaration(missing)
                 }
-                TokenKind::Abstract | TokenKind::Final => {
+                TokenKind::Abstract | TokenKind::Final | TokenKind::XHP => {
                     let missing = S!(make_missing, self, self.pos());
                     match parser1.peek_token_kind() {
                         TokenKind::RecordDec => self.parse_record_declaration(missing),

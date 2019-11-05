@@ -345,6 +345,7 @@ let inherit_hack_class env c class_name class_type argl =
       (* Change the private visibility to point to the inheriting class *)
       chown_privates (snd c.sc_name) class_type
     | Ast_defs.Cnormal
+    | Ast_defs.Cxhp
     | Ast_defs.Cabstract
     | Ast_defs.Cinterface ->
       filter_privates class_type

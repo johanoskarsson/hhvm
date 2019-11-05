@@ -91,6 +91,9 @@ let check_extend_kind parent_pos parent_kind child_pos child_kind =
   | ( (Ast_defs.Cabstract | Ast_defs.Cnormal),
       (Ast_defs.Cabstract | Ast_defs.Cnormal) )
   | (Ast_defs.Cabstract, Ast_defs.Cenum)
+  | (Ast_defs.Cxhp, Ast_defs.Cxhp)
+  | (Ast_defs.Cnormal, Ast_defs.Cxhp)
+  | (Ast_defs.Cabstract, Ast_defs.Cxhp)
   (* enums extend BuiltinEnum under the hood *)
   
   | (Ast_defs.Ctrait, Ast_defs.Ctrait)
@@ -891,6 +894,7 @@ and typeconst_fold c ((typeconsts, consts) as acc) stc =
     acc
   | Ast_defs.Cinterface
   | Ast_defs.Cabstract
+  | Ast_defs.Cxhp
   | Ast_defs.Cnormal ->
     let name = snd stc.stc_name in
     let c_name = snd c.sc_name in

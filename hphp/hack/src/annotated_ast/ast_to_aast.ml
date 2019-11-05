@@ -665,6 +665,7 @@ let converter
     | Private -> (final, abs, static, Some Aast.Private)
     | Public -> (final, abs, static, Some Aast.Public)
     | Protected -> (final, abs, static, Some Aast.Protected)
+    | XHP -> (final, abs, static, vis)
   and on_method m =
     let body = on_block m.m_body in
     let body =

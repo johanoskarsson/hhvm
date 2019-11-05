@@ -837,6 +837,7 @@ module ErrorString = struct
     match c_kind with
     | Ast_defs.Cabstract -> "an abstract" ^ fs ^ " class"
     | Ast_defs.Cnormal -> "a" ^ fs ^ " class"
+    | Ast_defs.Cxhp -> "an xhp " ^ fs ^ " class"
     | Ast_defs.Cinterface -> "an interface"
     | Ast_defs.Ctrait -> "a trait"
     | Ast_defs.Cenum -> "an enum"
@@ -1483,6 +1484,7 @@ module PrintClass = struct
   let class_kind = function
     | Ast_defs.Cabstract -> "Cabstract"
     | Ast_defs.Cnormal -> "Cnormal"
+    | Ast_defs.Cxhp -> "Cxhp"
     | Ast_defs.Cinterface -> "Cinterface"
     | Ast_defs.Ctrait -> "Ctrait"
     | Ast_defs.Cenum -> "Cenum"

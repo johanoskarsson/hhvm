@@ -271,7 +271,7 @@ let rec ancestor_linearization
         Shallow_classes_heap.get class_name
         |> Option.value_map ~default:false ~f:(fun c ->
                match c.sc_kind with
-               | Ast_defs.(Cnormal | Cabstract) -> true
+               | Ast_defs.(Cnormal | Cabstract | Cxhp) -> true
                | Ast_defs.(Ctrait | Cinterface | Cenum) -> false)
       in
       if not ancestor_checks_requirements then
@@ -431,7 +431,7 @@ and next_state
                   (* Otherwise, keep them only if they represent a requirement that
                  we will need to validate later. *)
                   
-                  | (Some _, Ast_defs.(Cnormal | Cabstract | Cenum)) ->
+                  | (Some _, Ast_defs.(Cnormal | Cxhp | Cabstract | Cenum)) ->
                     if List.exists synths ~f:(mro_elements_equal next) then
                       synths
                     else

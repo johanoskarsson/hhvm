@@ -62,6 +62,7 @@ let add_if_valid_origin class_elt child_class method_name result =
       (match origin_kind with
       | Ast_defs.Ctrait -> (method_name, Lazy.force class_elt.ce_pos) :: result
       | Ast_defs.Cabstract
+      | Ast_defs.Cxhp
       | Ast_defs.Cnormal
       | Ast_defs.Cinterface
       | Ast_defs.Cenum ->

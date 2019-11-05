@@ -39,6 +39,7 @@ and reified = bool
 and class_kind =
   | Cabstract
   | Cnormal
+  | Cxhp
   | Cinterface
   | Ctrait
   | Cenum
@@ -144,6 +145,7 @@ type fun_decl_kind =
 let string_of_class_kind = function
   | Cabstract -> "an abstract class"
   | Cnormal -> "a class"
+  | Cxhp -> "an xhp class"
   | Cinterface -> "an interface"
   | Ctrait -> "a trait"
   | Cenum -> "an enum"

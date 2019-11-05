@@ -31,6 +31,7 @@ let class_const env c cc =
     Errors.cannot_declare_constant kind pos c.c_name;
     None
   | Ast_defs.Cnormal
+  | Ast_defs.Cxhp
   | Ast_defs.Cabstract
   | Ast_defs.Cinterface
   | Ast_defs.Cenum ->
@@ -82,6 +83,7 @@ let typeconst env c tc =
     None
   | Ast_defs.Cinterface
   | Ast_defs.Cabstract
+  | Ast_defs.Cxhp
   | Ast_defs.Cnormal ->
     let constr = Option.map tc.c_tconst_constraint (Decl_hint.hint env) in
     let ty = Option.map tc.c_tconst_type (Decl_hint.hint env) in
