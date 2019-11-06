@@ -1,0 +1,16 @@
+File "spread.php", line 22, characters 8-20:
+Required attribute :a is missing. (Typing[4314])
+File "spread.php", line 6, characters 11-11:
+The attribute :a is declared in this class.
+File "spread.php", line 22, characters 8-20:
+Required attribute :b is missing. (Typing[4314])
+File "spread.php", line 6, characters 11-11:
+The attribute :b is declared in this class.
+File "spread.php", line 29, characters 8-20:
+Required attribute :b is missing. (Typing[4314])
+File "spread.php", line 5, characters 11-11:
+The attribute :b is declared in this class.
+File "spread.php", line 36, characters 8-20:
+Required attribute :a is missing. (Typing[4314])
+File "spread.php", line 3, characters 11-11:
+The attribute :a is declared in this class.
