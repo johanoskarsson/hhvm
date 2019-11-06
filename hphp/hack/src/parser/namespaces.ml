@@ -62,6 +62,7 @@ let elaborate_raw_id nsenv kind id =
     id
   else
     (* strip the colon here to match the xhp class style non colonized names *)
+    (* TODO this should be behind an option flag *)
     let id = String_utils.lstrip id ":" in
     let global_id = Utils.add_ns id in
     if kind = ElaborateConst && SN.PseudoConsts.is_pseudo_const global_id then

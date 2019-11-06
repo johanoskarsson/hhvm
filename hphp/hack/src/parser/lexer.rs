@@ -1096,12 +1096,11 @@ impl<'a, Token: LexableToken<'a>> Lexer<'a, Token> {
     // To support xhp class style class definitions we don't require a : prefix
     fn scan_xhp_class_name_not_qualified(&mut self) -> TokenKind {
         // we don't want to allow xhp names with a : prefix here
+        // TODO blow up if we find a - in the name
         if self.is_xhp_class_name() {
-            // TODO check error number
             self.with_error(Errors::error0008);
             TokenKind::ErrorToken
         } else {
-            // TODO test this with multiple labels
             self.scan_xhp_element_name(false);
             TokenKind::XHPClassName
         }

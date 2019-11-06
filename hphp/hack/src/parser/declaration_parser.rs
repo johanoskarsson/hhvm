@@ -550,7 +550,7 @@ where
 
     pub fn parse_classish_declaration(&mut self, attribute_spec: S::R) -> S::R {
         // TODO get from modifiers somehow
-        let is_xhp = self.peek_token_kind() == TokenKind::XHP;
+        let is_xhp = self.parse_is_xhp();
         let modifiers = self.parse_classish_modifiers();
         let token = self.parse_classish_token();
         let name = if is_xhp { self.require_xhp_class_name() } else { self.require_class_name() };
@@ -594,6 +594,24 @@ where
             let implements_token = S!(make_token, self, implements_token);
             let implements_list = self.parse_special_type_list();
             (implements_token, implements_list)
+        }
+    }
+
+    // TODO this seems redundant since we are already parsing the modifiers below
+    fn parse_is_xhp(&mut self) -> bool {
+        let mut parser = self.clone();
+        loop {
+            match parser.peek_token_kind() {
+                TokenKind::XHP => {
+                    return true;
+                }
+                TokenKind::Abstract | TokenKind::Final => {
+                    parser.next_token();
+                }
+                _ => {
+                    return false;
+                }
+            }
         }
     }
 

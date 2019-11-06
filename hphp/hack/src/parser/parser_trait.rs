@@ -742,9 +742,7 @@ where
         self.lexer_mut().next_xhp_class_name()
     }
 
-    // TODO remove once we have namespace support
     fn next_xhp_class_name_not_qualified(&mut self) -> S::Token {
-        // TODO throw real error if this starts with :
         self.lexer_mut().next_xhp_class_name_not_qualified()
     }
 

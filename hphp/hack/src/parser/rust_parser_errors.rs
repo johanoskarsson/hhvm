@@ -4127,7 +4127,6 @@ where
             self.invalid_modifier_errors("Classes, interfaces, and traits", node, |kind| {
                 kind == TokenKind::Abstract || kind == TokenKind::Final || kind == TokenKind::XHP
             });
-            // TODO throw error if it's a trait or interface that has an xhp modifier
 
             self.produce_error(
                 |self_, _| classish_sealed_arg_not_classname(self_),

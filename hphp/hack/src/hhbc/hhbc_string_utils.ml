@@ -200,14 +200,22 @@ module Xhp = struct
       if ignore_id s then
         s
       else
-        let s = strip_colon s
+        let need_prefix = is_xhp s in
+        let s =
+          if need_prefix then
+            strip_colon s
+          else
+            s
         in
         let s =
           s
           |> Str.global_replace rx_colon "__"
           |> Str.global_replace rx_dash "_"
         in
-        s
+        if need_prefix then
+          "xhp_" ^ s
+        else
+          s
 
   let mangle_id s =
     if ignore_id s then
@@ -231,12 +239,22 @@ module Xhp = struct
     let rx_dunder = Str.regexp "__" in
     let rx_under = Str.regexp "_" in
     fun s ->
+      let has_prefix = String_utils.string_starts_with s "xhp_" in
+      let s =
+        if has_prefix then
+          String_utils.lstrip s "xhp_"
+        else
+          s
+      in
       let s =
         s
         |> Str.global_replace rx_dunder ":"
         |> Str.global_replace rx_under "-"
       in
-      s
+      if has_prefix then
+        ":" ^ s
+      else
+        s
 
   let unmangle =
     let rx = Str.regexp "\\" in

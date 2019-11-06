@@ -2104,6 +2104,7 @@ if there already is one, since that one will likely be better than this one. *)
           env.ignore_pos <- false;
           let name =
             let (pos, name) = pos_name xhp_open_name env in
+            (* TODO put this behind an option flag (pos, ":" ^ name) *)
             (pos, name)
           in
           let combine b e = make_token Token.(concatenate b e) in
