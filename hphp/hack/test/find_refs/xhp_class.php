@@ -1,8 +1,8 @@
 <?hh
 
-xhp class xhp:foo-element {}
+class :xhp:foo-element {}
 
-xhp class xhp:bar {
+class :xhp:bar {
   attribute :xhp:foo-element;
   public function genFoo(
     :xhp:foo-element $e,

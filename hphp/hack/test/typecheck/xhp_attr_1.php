@@ -1,12 +1,12 @@
 <?hh // strict
-xhp class blah {}
+class :blah {}
 class GenericClass<T> {}
 class SomeClass {
   public function bar(): float {
     return 3.14;
   }
 }
-xhp class foo {
+class :foo {
   attribute
     // Using array without type parameters is okay for now
     array bar-baz = array(),

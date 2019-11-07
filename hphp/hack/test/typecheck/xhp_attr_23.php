@@ -1,6 +1,6 @@
 <?hh // strict
 
-xhp class foo {}
+class :foo {}
 
 function main(): void {
   $x = <foo bar="baz" />; // undefined attribute

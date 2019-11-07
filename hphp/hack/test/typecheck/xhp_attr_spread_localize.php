@@ -3,15 +3,15 @@
  * Tests whether or not XHP attribute types are correctly localized when we try
  * to spread them.
  */
-xhp class foo {
+class :foo {
   attribute this my-foo;
 }
 
-xhp class bar {
+class :bar {
   attribute :foo my-foo, string name;
 }
 
-xhp class baz {
+class :baz {
   attribute this my-foo;
 }
 

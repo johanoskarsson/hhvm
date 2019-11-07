@@ -13,6 +13,6 @@ function g(): void {
     </p>;
 }
 
-xhp class p {
+class :p {
   attribute string class;
 }

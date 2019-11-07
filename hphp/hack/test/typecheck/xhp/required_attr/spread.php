@@ -1,9 +1,9 @@
 <?hh // strict
 
-xhp class x { attribute int a @required; }
-xhp class x1 extends :x {}
-xhp class y { attribute int b @required; }
-xhp class z { attribute int a @required; attribute int b @required; }
+class :x { attribute int a @required; }
+class :x1 extends :x {}
+class :y { attribute int b @required; }
+class :z { attribute int a @required; attribute int b @required; }
 
 function bar1(): void {
   $x = <x a={1}/>;

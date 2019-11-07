@@ -8,6 +8,6 @@ class A {
   }
 }
 
-xhp class cls {
+class :cls {
   public ?int $x;
 }

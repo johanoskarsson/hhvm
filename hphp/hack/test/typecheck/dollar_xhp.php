@@ -15,4 +15,4 @@ class Bloo {
   }
 }
 
-xhp class div {}
+class :div {}

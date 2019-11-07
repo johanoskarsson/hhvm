@@ -10,4 +10,4 @@
  */
 
 class foo {}
-xhp class foo {}
+class :foo {}

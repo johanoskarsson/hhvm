@@ -1,12 +1,12 @@
 [(Class
     { c_span = [3:1-5:2]; c_annotation = (); c_mode = Mstrict;
-      c_final = false; c_is_xhp = true; c_kind = Cxhp;
-      c_name = ([3:11-14], "\\foo");
+      c_final = false; c_is_xhp = true; c_kind = Cnormal;
+      c_name = ([3:7-11], "\\:foo");
       c_tparams = { c_tparam_list = []; c_tparam_constraints = {} };
       c_extends = []; c_uses = []; c_use_as_alias = [];
       c_insteadof_alias = []; c_method_redeclarations = [];
       c_xhp_attr_uses = []; c_xhp_category = None; c_reqs = [];
-      c_implements = [([3:26-34], (Happly (([3:26-34], "\\XHPChild"), [])))];
+      c_implements = [([3:23-31], (Happly (([3:23-31], "\\XHPChild"), [])))];
       c_where_constraints = []; c_consts = []; c_typeconsts = [];
       c_vars =
       [{ cv_final = false; cv_xhp_attr = (Some { xai_tag = None });
@@ -35,8 +35,8 @@
        { fb_ast =
          [([9:3-22],
            (Expr
-              (([9:3-21], foo),
-               (Xml (([9:4-7], "\\foo"),
+              (([9:3-21], :foo),
+               (Xml (([9:4-7], "\\:foo"),
                   [(Xhp_simple (([9:8-11], "bar"),
                       (([9:12-18], string), (String "herp"))))
                     ],
@@ -49,26 +49,26 @@
                    (([10:11-17], string), (String "derp")))))));
            ([11:3-23],
             (Expr
-               (([11:3-22], foo),
-                (Xml (([11:4-7], "\\foo"),
+               (([11:3-22], :foo),
+                (Xml (([11:4-7], "\\:foo"),
                    [(Xhp_simple (([11:8-11], "bar"),
                        (([11:13-18], string), (Lvar ([11:13-18], $derp)))))
                      ],
                    [])))));
            ([14:3-18:10],
             (Expr
-               (([14:3-18:9], foo),
-                (Xml (([14:4-7], "\\foo"),
+               (([14:3-18:9], :foo),
+                (Xml (([14:4-7], "\\:foo"),
                    [(Xhp_simple (([14:8-11], "bar"),
                        (([14:12-18], string), (String "herp"))))
                      ],
-                   [(([15:5-17:11], foo),
-                     (Xml (([15:6-9], "\\foo"),
+                   [(([15:5-17:11], :foo),
+                     (Xml (([15:6-9], "\\:foo"),
                         [(Xhp_simple (([15:10-13], "bar"),
                             (([15:14-20], string), (String "derp"))))
                           ],
-                        [(([16:7-25], foo),
-                          (Xml (([16:8-11], "\\foo"),
+                        [(([16:7-25], :foo),
+                          (Xml (([16:8-11], "\\:foo"),
                              [(Xhp_simple (([16:12-15], "bar"),
                                  (([16:16-22], string), (String "herp"))))
                                ],

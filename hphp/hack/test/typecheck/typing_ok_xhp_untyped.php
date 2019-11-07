@@ -11,7 +11,7 @@
 
 class A implements XHPChild {}
 
-xhp class x:dumb {}
+class :x:dumb {}
 
 function foo($y): void {
   $y = <x:dumb>{0}{'hello'}{$y}{new A()}</x:dumb>;

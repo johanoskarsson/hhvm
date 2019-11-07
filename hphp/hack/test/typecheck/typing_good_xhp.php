@@ -11,7 +11,7 @@
 
 class A implements XHPChild {}
 
-xhp class x:dumb {}
+class :x:dumb {}
 
 function foo(mixed $x, string $s, ConstVector<string> $cs, dynamic $d): void {
   // This is allowed

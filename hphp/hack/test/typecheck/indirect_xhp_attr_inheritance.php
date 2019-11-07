@@ -1,21 +1,21 @@
 <?hh // strict
 
-abstract xhp class mixin {
+abstract class :mixin {
   children empty;
   attribute int x;
   final public static function foo(): void {}
 }
 
-abstract xhp class action {
+abstract class :action {
   attribute int y;
   final public static function foo(): void {}
 }
 
-abstract xhp class base extends :action {
+abstract class :base extends :action {
   attribute :mixin;
 }
 
-final xhp class child extends :base {
+final class :child extends :base {
   // :base does not inherit foo from :mixin, so there is no conflict between the
   // two final methods. The linearization must provide mro_xhp_attrs_only in
   // order to determine here that :child should not inherit the methods of

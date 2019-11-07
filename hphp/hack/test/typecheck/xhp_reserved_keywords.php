@@ -9,7 +9,7 @@
  *
  */
 
-xhp class meh {
+class :meh {
   attribute
     string if,
     string else,

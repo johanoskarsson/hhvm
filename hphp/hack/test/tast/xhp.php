@@ -1,6 +1,6 @@
 <?hh // strict
 
-xhp class foo implements XHPChild {
+class :foo implements XHPChild {
   attribute enum {'herp', 'derp'} bar;
 }
 

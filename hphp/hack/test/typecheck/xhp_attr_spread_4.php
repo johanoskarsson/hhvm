@@ -1,10 +1,10 @@
 <?hh // strict
 
-xhp class foo {
+class :foo {
   attribute int name, int age;
 }
 
-xhp class bar {
+class :bar {
   attribute string name;
 }
 

@@ -1,8 +1,8 @@
 <?hh // partial
-xhp class foo {
+class :foo {
   attribute :bar;
 }
-xhp class bar {
+class :bar {
   attribute array blah = array();
 }
 function test(:foo $obj): int {

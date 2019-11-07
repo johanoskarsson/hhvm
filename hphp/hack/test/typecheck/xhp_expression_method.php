@@ -1,5 +1,5 @@
 <?hh // partial
-final xhp class x {
+final class :x {
   public function foo(): string {
     return "";
   }

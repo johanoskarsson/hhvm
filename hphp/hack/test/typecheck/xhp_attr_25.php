@@ -1,6 +1,6 @@
 <?hh // strict
 
-xhp class foo {
+class :foo {
   attribute
     Stringish xlink:href,
     float opacity;

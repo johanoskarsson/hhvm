@@ -9,7 +9,7 @@
  *
  */
 
-xhp class div {
+class :div {
 }
 
 void function f() {

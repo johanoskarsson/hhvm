@@ -1,6 +1,6 @@
 <?hh // partial
 
-xhp class foo extends SomePHPClass {
+class :foo extends SomePHPClass {
   attribute int bar;
 }
 

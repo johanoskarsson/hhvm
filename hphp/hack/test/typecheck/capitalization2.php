@@ -20,4 +20,4 @@ function ret(): camelcase {
 
 function expect_CamelCase(CamelCase $x):void {}
 
-xhp class xhp {}
+class :xhp {}

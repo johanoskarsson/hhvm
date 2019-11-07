@@ -9,6 +9,6 @@
  *
  */
 
-xhp class foo {
+class :foo {
   attribute enum {'foo'} e;
 }

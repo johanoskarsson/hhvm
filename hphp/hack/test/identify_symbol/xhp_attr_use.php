@@ -1,7 +1,7 @@
 <?hh
 
-xhp class xhp:foo-element {}
+class :xhp:foo-element {}
 
-xhp class xhp:bar-component {
+class :xhp:bar-component {
   attribute :xhp:foo-element;
 }

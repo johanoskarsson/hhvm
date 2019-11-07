@@ -1,6 +1,6 @@
 <?hh // strict
 
-xhp class my-xhp<T> {
+class :my-xhp<T> {
   attribute Vector<T> foo @required;
 }
 

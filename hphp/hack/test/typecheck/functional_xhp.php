@@ -11,11 +11,11 @@
 
 class Blah {}
 
-xhp class x:xx extends Blah {
+class :x:xx extends Blah {
   attribute Map<string, int> k;
 }
 
-xhp class x:xy {}
+class :x:xy {}
 
 class A {}
 

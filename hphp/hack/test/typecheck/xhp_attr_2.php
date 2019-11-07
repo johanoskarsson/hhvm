@@ -1,5 +1,5 @@
 <?hh // strict
-xhp class foo {
+class :foo {
   attribute int x = 0;
   public string $x = "";
 }

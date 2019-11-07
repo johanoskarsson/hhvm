@@ -1,6 +1,6 @@
 <?hh
 
-xhp class foo:bar {}
+class :foo:bar {}
 
 function main(): void {
   $x = <foo:AUTO332

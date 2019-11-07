@@ -17,4 +17,4 @@ class A {
   }
 }
 
-xhp class x:base {}
+class :x:base {}

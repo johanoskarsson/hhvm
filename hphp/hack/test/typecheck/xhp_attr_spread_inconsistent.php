@@ -1,6 +1,6 @@
 <?hh // strict
 
-xhp class foo {
+class :foo {
   attribute string name;
 
   public async function genRender(): Awaitable<mixed> {
@@ -10,10 +10,10 @@ xhp class foo {
   }
 }
 
-xhp class subfoo extends :foo {
+class :subfoo extends :foo {
   attribute string age;
 }
 
-xhp class bar {
+class :bar {
   attribute int age;
 }

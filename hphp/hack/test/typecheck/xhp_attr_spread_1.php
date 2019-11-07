@@ -1,5 +1,5 @@
 <?hh // strict
-xhp class foo {
+class :foo {
   attribute string bar;
 }
 

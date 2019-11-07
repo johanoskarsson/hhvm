@@ -1,7 +1,7 @@
 <?hh // strict
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-xhp class xhp implements XHPChild {}
+class :xhp implements XHPChild {}
 
 class Inv<T> {
   public function __construct(public T $value) {}
