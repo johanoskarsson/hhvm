@@ -474,7 +474,8 @@ let make_popt () =
       ~const_static_props:(const_static_props co)
       ~abstract_static_props:(abstract_static_props co)
       ~disable_unset_class_const:(disable_unset_class_const co)
-      ~disallow_func_ptrs_in_constants:(disallow_func_ptrs_in_constants co))
+      ~disallow_func_ptrs_in_constants:(disallow_func_ptrs_in_constants co)
+      ~disable_xhp_element_mangling:(disable_xhp_element_mangling co))
 
 let process_single_source_unit
     compiler_options handle_output handle_exception filename source_text =

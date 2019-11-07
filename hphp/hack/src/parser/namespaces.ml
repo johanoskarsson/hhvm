@@ -61,8 +61,14 @@ let elaborate_raw_id nsenv kind id =
     (* The name is already fully-qualified. *)
     id
   else
-    (* strip the colon here to match the xhp class style non colonized names *)
-    (* TODO this should be behind an option flag *)
+    (* 
+    TODO this is apparently not how this is done. Figure out how to access the options here.
+    let popt = Parser_options_provider.get () in
+    let id = if ParserOptions.disable_xhp_element_mangling popt then 
+      (* strip the colon here to match the xhp class style non colonized names *)
+      String_utils.lstrip id ":" 
+    else 
+      id in *)
     let id = String_utils.lstrip id ":" in
     let global_id = Utils.add_ns id in
     if kind = ElaborateConst && SN.PseudoConsts.is_pseudo_const global_id then

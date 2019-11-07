@@ -2161,12 +2161,16 @@ where
                             Either::Right(n) => Self::p_xhp_embedded(Self::unesc_xhp, n, env),
                         })
                         .collect::<std::result::Result<Vec<_>, _>>()?;
+                    // let id = if env.parser_options.po_disable_xhp_element_mangling {
+                    let id = if true {
+                        ast_defs::Id(name.0, name.1)
+                    } else {
+                        ast_defs::Id(name.0, String::from(":") + &name.1)
+                    };
 
                     Ok(E_::mk_xml(
                         // TODO: update pos_name to support prefix
-                        // TODO adding a colon here should be an option (new style xhp class vs not)
-                        //ast_defs::Id(name.0, String::from(":") + &name.1),
-                        ast_defs::Id(name.0, name.1),
+                        id,
                         attrs,
                         exprs,
                     ))

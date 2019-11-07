@@ -113,6 +113,7 @@ type t = {
   glean_port: int;
   glean_reponame: string;
   po_disallow_func_ptrs_in_constants: bool;
+  po_disable_xhp_element_mangling: bool;
 }
 [@@deriving show]
 
@@ -266,6 +267,7 @@ let default =
     glean_port = 0;
     glean_reponame = "www.autocomplete";
     po_disallow_func_ptrs_in_constants = false;
+    po_disable_xhp_element_mangling = false;
   }
 
 let make
@@ -356,6 +358,7 @@ let make
     ?(glean_reponame = default.glean_reponame)
     ?(po_disallow_func_ptrs_in_constants =
       default.po_disallow_func_ptrs_in_constants)
+    ?(po_disable_xhp_element_mangling = default.po_disable_xhp_element_mangling)
     () =
   {
     tco_experimental_features;
@@ -432,6 +435,7 @@ let make
     glean_port;
     glean_reponame;
     po_disallow_func_ptrs_in_constants;
+    po_disable_xhp_element_mangling;
   }
 
 let tco_experimental_feature_enabled t s =
@@ -594,3 +598,5 @@ let set_infer_missing t w = { t with tco_infer_missing = w }
 let po_parser_errors_only t = t.po_parser_errors_only
 
 let po_disallow_func_ptrs_in_constants t = t.po_disallow_func_ptrs_in_constants
+
+let po_disable_xhp_element_mangling t = t.po_disable_xhp_element_mangling

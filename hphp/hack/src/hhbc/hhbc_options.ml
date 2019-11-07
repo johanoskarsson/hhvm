@@ -58,6 +58,7 @@ type t = {
   option_disallow_func_ptrs_in_constants: bool;
   option_enforce_generics_ub: bool;
   option_check_int_overflow: bool;
+  option_disable_xhp_element_mangling: bool;
 }
 
 let default =
@@ -111,6 +112,7 @@ let default =
     option_disallow_func_ptrs_in_constants = false;
     option_enforce_generics_ub = false;
     option_check_int_overflow = false;
+    option_disable_xhp_element_mangling = false;
   }
 
 let constant_folding o = o.option_constant_folding
@@ -208,6 +210,8 @@ let disable_unset_class_const o = o.option_disable_unset_class_const
 
 let disallow_func_ptrs_in_constants o =
   o.option_disallow_func_ptrs_in_constants
+
+let disable_xhp_element_mangling o = o.option_disable_xhp_element_mangling
 
 let enforce_generics_ub o = o.option_enforce_generics_ub
 

@@ -232,6 +232,12 @@ type t = {
   glean_reponame: string;
   (* Flag to disallow HH\fun and HH\class_meth in constants and constant initializers *)
   po_disallow_func_ptrs_in_constants: bool;
+  (*
+   * Flag to disable the old stype xhp element mangling. <something/> would otherwise be resolved as xhp_something
+   * The new style xhp class something {}; does not do this style of mangling, thus we need a way to disable it on the
+   * 'lookup side'.
+   *)
+  po_disable_xhp_element_mangling: bool;
 }
 [@@deriving show]
 
@@ -309,6 +315,7 @@ val make :
   ?glean_port:int ->
   ?glean_reponame:string ->
   ?po_disallow_func_ptrs_in_constants:bool ->
+  ?po_disable_xhp_element_mangling:bool ->
   unit ->
   t
 
@@ -487,3 +494,5 @@ val glean_port : t -> int
 val glean_reponame : t -> string
 
 val po_disallow_func_ptrs_in_constants : t -> bool
+
+val po_disable_xhp_element_mangling : t -> bool
