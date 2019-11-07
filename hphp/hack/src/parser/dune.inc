@@ -108,6 +108,7 @@
     nast
     parser_ppl
     partial_provider
+    parser_options_provider
     rust_parser_ffi
     typing_ast
     utils_lint

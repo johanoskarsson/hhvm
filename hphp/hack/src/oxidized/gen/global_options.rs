@@ -92,4 +92,5 @@ pub struct GlobalOptions {
     pub glean_port: isize,
     pub glean_reponame: String,
     pub po_disallow_func_ptrs_in_constants: bool,
+    pub po_disable_xhp_element_mangling: bool,
 }

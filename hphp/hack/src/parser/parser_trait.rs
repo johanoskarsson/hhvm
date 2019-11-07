@@ -694,7 +694,6 @@ where
     }
 
     fn require_xhp_class_name_or_name_or_variable(&mut self) -> S::R {
-        // TODO add modifier check
         if self.is_next_xhp_class_name() {
             let token = self.next_xhp_class_name();
             S!(make_token, self, token)

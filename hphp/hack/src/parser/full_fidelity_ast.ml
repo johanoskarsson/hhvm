@@ -2104,10 +2104,7 @@ if there already is one, since that one will likely be better than this one. *)
           env.ignore_pos <- false;
           let name =
             let (pos, name) = pos_name xhp_open_name env in
-              if ParserOptions.disable_xhp_element_mangling env.parser_options then
-                (pos, name)
-              else
-                (pos, ":" ^ name)
+            (pos, ":" ^ name)
           in
           let combine b e = make_token Token.(concatenate b e) in
           let aggregate_tokens node =

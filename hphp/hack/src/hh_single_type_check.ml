@@ -223,6 +223,7 @@ let parse_options () =
   let glean_port = ref (GleanOptions.port GlobalOptions.default) in
   let glean_reponame = ref (GleanOptions.reponame GlobalOptions.default) in
   let disallow_func_ptrs_in_constants = ref false in
+  let disable_xhp_element_mangling = ref false in
   let options =
     [
       ("--ai", Arg.String set_ai, " Run the abstract interpreter (Zoncolan)");
@@ -503,6 +504,10 @@ let parse_options () =
         Arg.Set disallow_func_ptrs_in_constants,
         "Disallow use of HH\\fun and HH\\class_meth in constants and constant initializers"
       );
+      ( "--disable-xhp-element-mangling",
+        Arg.Set disable_xhp_element_mangling,
+        "Disable mangling of XHP elements. With the mangling enabled the new style xhp class will not resolve due to naming mismatch."
+      );
     ]
   in
   let options = Arg.align ~limit:25 options in
@@ -561,6 +566,7 @@ let parse_options () =
       ~glean_hostname:!glean_hostname
       ~glean_port:!glean_port
       ~glean_reponame:!glean_reponame
+      ~po_disable_xhp_element_mangling:!disable_xhp_element_mangling
       ()
   in
   let tcopt =

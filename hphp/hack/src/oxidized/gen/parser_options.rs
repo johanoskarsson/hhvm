@@ -26,4 +26,5 @@ pub struct FfiT(
     pub bool,
     pub bool,
     pub bool,
+    pub bool,
 );
